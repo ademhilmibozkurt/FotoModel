@@ -1,14 +1,17 @@
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 import uuid
 from database import supabase
 
-app = FastAPI()
+app = FastAPI(docs_url="/docs")
 templates = Jinja2Templates(directory="templates")
 
 PHOTO_TEMPLATES = ["4k_1.jpg", "4k_2.jpg", "4k_3.jpg", "4k_4.jpg", "4k_5.jpg", "4k_6.jpg"]
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/create-link")
 def create_link():
