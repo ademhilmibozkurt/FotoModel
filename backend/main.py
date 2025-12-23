@@ -62,9 +62,8 @@ def submit_form(link_id:str, full_name: str = Form(...), phone_number: str = For
 
     supabase \
         .table("form_links") \
-        .select("*") \
-        .eq("id", link_id) \
         .update({"is_used": True}) \
+        .eq("id", link_id) \
         .execute()
 
     return {"status": "ok"}
