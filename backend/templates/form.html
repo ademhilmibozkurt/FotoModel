@@ -4,6 +4,7 @@
 
 <h3>Fotoğraf Şablonlarını Seç</h3>
 
+<!-- everything should prettify -->
 <form method="post">
     <input name="full_name" placeholder="Ad-Soyad" required><br><br>
     <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
@@ -12,6 +13,7 @@
     
     {% for t in templates %}
     <label>
+        <img src="/templates/{{ t }}">
         <input type="checkbox" name="selected_templates" value="{{ t }}">
         {{ t }}
     </label><br>
