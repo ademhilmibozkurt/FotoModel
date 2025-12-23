@@ -8,11 +8,11 @@
     <input name="full_name" placeholder="Ad-Soyad" required><br><br>
     <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
 
-    <img src="/static/templates/{{ t }}">
+    
     
     {% for t in templates %}
     <label>
-        <input type="checkbox" name="templates" value="{{ t }}">
+        <input type="checkbox" name="selected_templates" value="{{ t }}">
         {{ t }}
     </label><br>
     {% endfor %}
