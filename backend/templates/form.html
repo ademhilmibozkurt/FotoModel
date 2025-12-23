@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h3>Fotoğraf Şablonlarını Seç</h3>
+
+<form method="post">
+    <input name="full_name" placeholder="Ad-Soyad" required><br><br>
+    <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
+
+    <img src="/static/templates/{{ t }}">
+    
+    {% for t in templates %}
+    <label>
+        <input type="checkbox" name="templates" value="{{ t }}">
+        {{ t }}
+    </label><br>
+    {% endfor %}
+
+    <br>
+    <button type="submit">Gönder</button>
+</form>
+
+</body>
+</html>
