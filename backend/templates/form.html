@@ -7,23 +7,24 @@
         <div class="background"></div>
             <h3>Fotoğraf Şablonlarını Seç</h3>
 
-            <!-- everything should prettify -->
-            <form method="post" onsubmit="return checkForm()">
+            <form method="post" onsubmit="return checkForm()" class="form">
                 <input name="full_name" placeholder="Ad-Soyad" required><br><br>
                 <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
                 
                 <h2 class="categories__title">Şablonlar</h2>
                 {% for t in templates %}
-                <label class="checkbox-group required">
-                    <section class="carousel">
-                        <div class="carousel__container">
-                            <div class="carousel-item">
-                                <img class="carousel-item__img" src="/static/{{ t }}" width="400"/>
-                            </div>    
+                <label class="card required">
+                    <input class="card__input" type="checkbox" name="selected_templates" value="{{ t }}">
+                    <div class="card__body">
+                        <div class="card__body-cover">
+                            <img class="card__body-cover-img" src="/static/{{ t }}"/>
+                            <span class="card__body-cover-checkbox">
+                                <svg class="card__body-cover-checkbox--svg" viewBox="0 0 12 10">
+                                    <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                                </svg>
+                            </span>   
                         </div>
-                        <input type="checkbox" name="selected_templates" value="{{ t }}">
-                    </section>
-                    
+                    </div>
                 </label><br>
                 {% endfor %}
 
@@ -32,7 +33,7 @@
                     function checkForm()
                     {
                         const checked = document.querySelectorAll(
-                            '.checkbox-group input[type="checkbox"]:checked'
+                            '.card input[type="checkbox"]:checked'
                         )
 
                         if (checked.length === 0) 

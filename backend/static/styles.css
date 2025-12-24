@@ -3,15 +3,14 @@ body {
     font-family: 'Muli', sans-serif;
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
-    overflow-x: hidden;
 }
 
 .background 
 {
     width: 100%;
-    height: 1000px;
+    height: 100%;
     position: absolute;
-    z-index: 0;
+    z-index: -1;
     top: 0;
     left: 0;
 }
@@ -27,93 +26,174 @@ body {
     background: linear-gradient(to top, #0f0140e6, rgba(255, 214, 117, 0.9));
     background-size: cover;
     width: 100%;
-    height: 1000px;
+    height: 100%;
     position: absolute;
     z-index: 0;
     top: 0;
     left: 0;
 }
 
-.carousel 
+.card
 {
-    width: 100%;
-    overflow-x: scroll;
-    padding: 30px;
-    padding-top: 80px;
-    position: relative;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
+    --background: #afe8f1;
+    --background-checkbox: #f3f02b;
+    --background-image: #fff, rgba(0, 107, 175, 0.2);
+    --card-shadow: #f3f02b;
+    --card-height: 600px;
+    --card-width: 800px;
+    --card-radius: 12px;
+    --header-height: 0px;
+    --blend-mode: overlay;
+    --transition: 0.15s;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
-.carousel__container 
+.card__body
 {
-    white-space: nowrap;
-    margin: 70px 0px;
-    padding-bottom: 10px;
-    display: inline-block;
-}
-
-.categories__title 
-{
-    color: rgb(77, 55, 102);
-    font-size: 28px;
-    position: absolute;
-    padding-left: 30px;
-}
-
-.carousel-item 
-{
-    width: 600px;
-    height: 400px;
-    border-radius: 20px;
-    background-color: #95bcd6;
+    display: grid;
+    grid-auto-rows: calc(var(--card-height) - var(--header-height)) auto;
+    background: var(--background);
+    height: var(--card-height);
+    width: var(--card-width);
+    border-radius: var(--card-radius);
     overflow: hidden;
-    margin-right: 10px;
-    margin-top: 70px;
-    display: inline-block;
-    cursor: pointer;
-    -webkit-transition: 500ms all;
-    transition: 500ms all;
-    -webkit-transform-origin: center left;
-    transform-origin: center left;
     position: relative;
+    cursor: pointer;
+    box-shadow: var(--shadow, 0 4px 4px 0 rgba(0, 0, 0, 0.02));
+    -webkit-transition: box-shadow var(--transition), -webkit-transform var(--transition);
+    transition: box-shadow var(--transition), -webkit-transform var(--transition);
+    transition: transform var(--transition), box-shadow var(--transition);
+    transition: transform var(--transition), box-shadow var(--transition), -webkit-transform var(--transition);
+    -webkit-transform: scale(var(--scale, 1)) translateZ(0);
+    transform: scale(var(--scale, 1)) translateZ(0);
 }
 
-.carousel-item:hover ~ .carousel-item 
+.card__body:active
 {
-    -webkit-transform: translate3d(100px, 0, 0);
-    transform: translate3d(100px, 0, 0);
+    --scale: 0.96;
 }
 
-.carousel__container:hover .carousel-item 
+.card__body-cover
 {
-    opacity: 1;   
+    --c-border: var(--card-radius) var(--card-radius) 0 0;
+    position: relative;
+    overflow: hidden;
 }
 
-.carousel__container:hover .carousel-item:hover 
+.card__body-cover:after
 {
-    -webkit-transform: scale(1.1);
-    transform: scale(1.1);
+    content: "";
+    position: relative;
+    display: grid;
+    left: 0;
+    top: 0;
+    width: 800px;
+    height: 600px;
+    border-radius: var(--c-border);
+    background: -webkit-gradient(linear, left top, right bottom, from(var(--background-image)));
+    background: linear-gradient(to bottom right, var(--background-image));
+    mix-blend-mode: var(--blend-mode);
+    opacity: var(--opacity-bg, 1);
+    -webkit-transition: opacity var(--transition) linear;
+    transition: opacity var(--transition) linear;
+}
+.card__body-cover-image
+{
+    width: 800px;
+    height: 600px;
+    display: grid;
+    object-fit: contain;
+    object-position: center;
+    background-color: #ffff;
+    border-radius: var(--c-border);
 }
 
-.carousel-item__img 
+.card__input
 {
-    width: 600px;
-    height: 400px;
-    -o-object-fit: cover;
-    object-fit: cover;
-    opacity: 0.8;
+    position: absolute;
+    display: grid;
+    visibility: hidden;
+    outline: none;
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    --webkit-appearance: none;
 }
 
-.carousel-item__img:hover
+.card__input:checked ~ .card__body
 {
-    opacity: 1;
-    
+    --shadow: 0 0 0 3px var(--card-shadow);
 }
 
-.carousel-item__details .carousel-item__details--title,
-.carousel-item__details--subtitle 
+.card__input:checked ~ .card__body .card__body-cover-checkbox 
 {
-    color: #fff;
-    margin: 5px 0;
+    --check-bg: var(--background-checkbox);
+    --check-border: #fff;
+    --check-scale: 1;
+    --check-opacity: 1;
+}
+
+.card__input:checked ~ .card__body .card__body-cover-checkbox--svg
+{
+    --stroke-color: #fff;
+    --stroke-dashoffset: 0;
+}
+
+.card__input:checked ~ .card__body .card__body-cover:after 
+{
+    --opacity-bg: 0;
+}
+
+.card__input:checked ~ .card__body .card__body-cover-image
+{
+    --filter-bg: grayscale(0);
+}
+
+.card__input:disabled ~ .card__body
+{
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.card__input:disabled ~ .card__body:active 
+{
+    --scale: 1;
+}
+
+.card__body-cover-checkbox
+{
+    background: var(--check-bg, var(--background-checkbox));
+    border: 2px solid var(--check-border, #fff);
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    opacity: var(--check-opacity, 0);
+    transition: transform var(--transition), opacity calc(var(--transition) * 1.2) linear, -webkit-transform var(--transition) ease;
+    -webkit-transform: scale(var(--check-scale, 0));
+    transform: scale(var(--check-scale, 0));
+}
+
+.card__body-cover-checkbox--svg 
+{
+    width: 13px;
+    height: 11px;
+    display: flex;
+    fill: none;
+    margin: 7px 0 0 5px;
+    stroke: var(--stroke-color, #fff);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 16px;
+    stroke-dashoffset: var(--stroke-dashoffset, 16px);
+    -webkit-transition: stroke-dashoffset 0.4s ease var(--transition);
+    transition: stroke-dashoffset 0.4s ease var(--transition);
 }
