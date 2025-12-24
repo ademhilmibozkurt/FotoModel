@@ -1,39 +1,51 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <link rel="stylesheet" href="/static/styles.css"/>
+    </head>
     <body>
+        <div class="background"></div>
+            <h3>Fotoğraf Şablonlarını Seç</h3>
 
-        <h3>Fotoğraf Şablonlarını Seç</h3>
+            <!-- everything should prettify -->
+            <form method="post" onsubmit="return checkForm()">
+                <input name="full_name" placeholder="Ad-Soyad" required><br><br>
+                <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
+                
+                <h2 class="categories__title">Şablonlar</h2>
+                {% for t in templates %}
+                <label class="checkbox-group required">
+                    <section class="carousel">
+                        <div class="carousel__container">
+                            <div class="carousel-item">
+                                <img class="carousel-item__img" src="/static/{{ t }}" width="400"/>
+                            </div>    
+                        </div>
+                        <input type="checkbox" name="selected_templates" value="{{ t }}">
+                    </section>
+                    
+                </label><br>
+                {% endfor %}
 
-        <!-- everything should prettify -->
-        <form method="post" onsubmit="return checkForm()">
-            <input name="full_name" placeholder="Ad-Soyad" required><br><br>
-            <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
-
-            {% for t in templates %}
-            <label class="checkbox-group required">
-                <img src="/static/{{ t }}" width="600"><br>
-                <input type="checkbox" name="selected_templates" value="{{ t }}">
-            </label><br>
-            {% endfor %}
-
-            <br>
-            <script>
-                function checkForm()
-                {
-                    const checked = document.querySelectorAll(
-                        '.checkbox-group input[type="checkbox"]:checked'
-                    )
-
-                    if (checked.length === 0) 
+                <br>
+                <script>
+                    function checkForm()
                     {
-                        alert("En az bir fotoğraf seçmelisiniz!")
-                        return false
-                    }
+                        const checked = document.querySelectorAll(
+                            '.checkbox-group input[type="checkbox"]:checked'
+                        )
 
-                    return true
-                }
-            </script>
-            <button type="submit">Gönder</button>
-        </form>
+                        if (checked.length === 0) 
+                        {
+                            alert("En az bir fotoğraf seçmelisiniz!")
+                            return false
+                        }
+
+                        return true
+                    }
+                </script>
+                <button type="submit">Gönder</button>
+            </form>
+        </div>
     </body>
 </html>
