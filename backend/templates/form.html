@@ -2,16 +2,26 @@
 <html>
     <head>
         <link rel="stylesheet" href="/static/reset.css"/>
+        <link rel="stylesheet" href="/static/elements.css"/>
         <link rel="stylesheet" href="/static/styles.css"/>
     </head>
     <body>
         <div class="page">
-            <h3>Fotoğraf Şablonlarını Seç</h3>
             <form method="post" onsubmit="return checkForm()" class="form">
-                <input name="full_name" placeholder="Ad-Soyad" required><br><br>
-                <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
-                
-                <h2 class="categories__title">Şablonlar</h2>
+                <h2>FotoModel Şablon Seçimi</h2><br>
+
+                <div class="field">
+                    <input name="full_name" type="text" class="input" required>
+                    <span class="span"></span>
+                    <label class="label">Ad ve Soyad</label><br>
+                </div>
+                <div class="field">
+                    <input name="phone_number" type="text" class="input" required>
+                    <span class="span"></span>
+                    <label class="label">Telefon</label><br>
+                </div>
+
+                <h2>Şablonlar</h2>
                 {% for t in templates %}
                 <label class="card required">
                     <input class="card__input" type="checkbox" name="selected_templates" value="{{ t }}">
@@ -47,7 +57,7 @@
                         return true
                     }
                 </script>
-                <button type="submit">Gönder</button>
+                <button class="button">Gönder</button>
             </form>
         </div>
     </body>
