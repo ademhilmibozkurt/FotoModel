@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" href="/static/reset.css"/>
         <link rel="stylesheet" href="/static/styles.css"/>
     </head>
     <body>
-        <div class="background"></div>
+        <div class="page">
             <h3>Fotoğraf Şablonlarını Seç</h3>
-
             <form method="post" onsubmit="return checkForm()" class="form">
                 <input name="full_name" placeholder="Ad-Soyad" required><br><br>
                 <input name="phone_number" placeholder="Telefon Numarası" required><br><br>
@@ -17,12 +17,14 @@
                     <input class="card__input" type="checkbox" name="selected_templates" value="{{ t }}">
                     <div class="card__body">
                         <div class="card__body-cover">
-                            <img class="card__body-cover-img" src="/static/{{ t }}"/>
-                            <span class="card__body-cover-checkbox">
-                                <svg class="card__body-cover-checkbox--svg" viewBox="0 0 12 10">
-                                    <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
-                                </svg>
-                            </span>   
+                            <div class="image-wrapper">
+                                <img class="card__body-cover-img" src="/static/{{ t }}"/>
+                                <span class="card__body-cover-checkbox">
+                                    <svg class="card__body-cover-checkbox--svg" viewBox="0 0 12 10">
+                                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                                    </svg>
+                                </span>   
+                            </div>
                         </div>
                     </div>
                 </label><br>
