@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
 import uuid
-from database import supabase
+from database import supabaseClient
 
 app = FastAPI(docs_url="/docs")
 templates = Jinja2Templates(directory="templates")
@@ -12,6 +12,8 @@ templates = Jinja2Templates(directory="templates")
 PHOTO_TEMPLATES = ["4k_1.jpg", "4k_2.jpg", "4k_3.jpg", "4k_4.jpg", "4k_5.jpg", "4k_6.jpg"]
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+supabase = supabaseClient()
 
 @app.post("/create-link")
 def create_link():
@@ -38,7 +40,7 @@ def show_form(request: Request, link_id: str):
         .execute()
 
     if not link.data or link.data["is_used"]:
-        return HTMLResponse("Geçersiz veya kullanılmış link")
+        return HTMLResponse("Geçersiz veya kullanılmış link. Lütfen stüdyo ile iletişime geçin!")
 
     return templates.TemplateResponse(
         "form.html",

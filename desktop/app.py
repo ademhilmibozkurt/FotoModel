@@ -1,5 +1,5 @@
 import sys
-from database import supabase
+from database import createClient
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton
 
 class App(QWidget):
@@ -18,13 +18,15 @@ class App(QWidget):
         layout.addWidget(self.log)
         self.setLayout(layout)
 
+        self.supabase = createClient()
+
     # add a list of customers
     # select one customer
     # show selected photo templates
     # add is_made button and allow for deletion
     def fetch_data(self):
         responses = (
-            supabase
+            self.supabase
             .table("responses")
             .select("*")
             .order("created_at", desc=True)
