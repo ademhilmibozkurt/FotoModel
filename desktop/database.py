@@ -12,7 +12,8 @@ class SupabaseDB(object):
         super().__init__()
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    def upload_templates(self, photos):
+    def upload_templates(self, photos: list):
+        print(photos)
         return None
     
     def fetch_data(self):
@@ -26,6 +27,8 @@ class SupabaseDB(object):
             .data
             )
 
+        # tarih formatını ayarla !!
+        # telefon formatını formda ayarla !!
         for item in response:
             formatted.append({
                 "Telefon": item.get("phone_number"),
