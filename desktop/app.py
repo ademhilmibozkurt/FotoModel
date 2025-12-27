@@ -14,6 +14,7 @@ class FotoModelApp(tk.Tk):
         self.geometry("1400x800")
         self.configure(bg="#0f172a")
 
+        self.all_data = ""
         self.supabase = SupabaseDB()
         self.images = []
 
@@ -40,6 +41,10 @@ class FotoModelApp(tk.Tk):
 
     def create_header(self):
         header = tk.Frame(self, bg="#234C6A", height=70)
+        logo   = ImageTk.PhotoImage(file="logo.jpg")
+        logo_widget = tk.Label(header, image=logo)
+        logo_widget.image = logo
+        logo_widget.pack(side="left")
         header.pack(fill="x")
 
         tk.Label(
@@ -96,8 +101,9 @@ class FotoModelApp(tk.Tk):
     def load_supabase_data(self):
         try:
             self.all_data = self.supabase.fetch_data()
+
             self.refresh_tree(self.all_data)
-            self.log("Seçimler Getirildi!: ", time.now())
+            self.log("Seçimler Getirildi!: ", time.localtime())
 
         except Exception as e:
             messagebox.showerror("Veritabanı Hatası!", str(e))
