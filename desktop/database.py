@@ -16,10 +16,10 @@ class SupabaseDB(object):
         return None
     
     def fetch_data(self):
-        return (
-            self.supabase
+        return [
+            dict(self.supabase
             .table("responses")
-            .select("*")
+            .select("phone_number, full_name, selected_templates, created_at")
             .order("created_at", desc=True)
-            .execute()
-        )
+            .execute())
+        ]
