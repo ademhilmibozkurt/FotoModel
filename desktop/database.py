@@ -16,10 +16,22 @@ class SupabaseDB(object):
         return None
     
     def fetch_data(self):
-        return [
-            dict(self.supabase
+        formatted = []
+        response = (
+            self.supabase
             .table("responses")
             .select("phone_number, full_name, selected_templates, created_at")
             .order("created_at", desc=True)
-            .execute())
-        ]
+            .execute()
+            .data
+            )
+
+        for item in response:
+            formatted.append({
+                "Telefon": item.get("phone_number"),
+                "İsim": item.get("full_name"),
+                "Tarih": item.get("created_at"),
+                "Seçimler": item.get("selected_templates")
+            })
+
+        return formatted

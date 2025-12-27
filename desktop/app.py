@@ -10,7 +10,7 @@ class FotoModelApp(tk.Tk):
 
         # ---------------- Window ----------------
         self.title("Foto Model Studio")
-        self.geometry("1200x800")
+        self.geometry("1400x800")
         self.configure(bg="#0f172a")
 
         self.supabase = SupabaseDB()
@@ -24,9 +24,9 @@ class FotoModelApp(tk.Tk):
         style = ttk.Style(self)
         style.theme_use("clam")
 
-        style.configure(".", background="#0f172a", foreground="white")
+        style.configure(".", background="#1B3C53", foreground="#E3E3E3")
         style.configure("TButton", padding=10, font=("Segoe UI", 11))
-        style.configure("TNotebook", background="#0f172a")
+        style.configure("TNotebook", background="#1B3C53")
         style.configure("TNotebook.Tab", padding=[20, 10], font=("Segoe UI", 11))
         style.configure("Treeview", rowheight=28, font=("Segoe UI", 10))
         style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
@@ -38,36 +38,36 @@ class FotoModelApp(tk.Tk):
         self.create_log_tab()
 
     def create_header(self):
-        header = tk.Frame(self, bg="#020617", height=70)
+        header = tk.Frame(self, bg="#234C6A", height=70)
         header.pack(fill="x")
 
         tk.Label(
             header,
             text="Foto Model Studio",
-            bg="#020617",
-            fg="white",
+            bg="#234C6A",
+            fg="#E3E3E3",
             font=("Segoe UI", 22, "bold")
         ).pack(pady=15)
 
     def create_tabs(self):
         self.tabs = ttk.Notebook(self)
-        self.tabs.pack(fill="both", expand=True, padx=15, pady=15)
+        self.tabs.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.create_upload_tab()
         self.create_supabase_tab()
 
     # ---------------- Upload Tab ----------------
     def create_upload_tab(self):
-        tab = tk.Frame(self.tabs, bg="#0f172a")
+        tab = tk.Frame(self.tabs, bg="#1B3C53")
         self.tabs.add(tab, text="Şablon Yükleme")
 
         btn = ttk.Button(tab, text="📂 Görselleri Yükle", command=self.upload_images)
         btn.pack(pady=10)
 
-        canvas = tk.Canvas(tab, bg="#020617")
+        canvas = tk.Canvas(tab, bg="#234C6A")
         canvas.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.preview_frame = tk.Frame(canvas, bg="#020617")
+        self.preview_frame = tk.Frame(canvas, bg="#456882")
         scrollbar = ttk.Scrollbar(tab, orient="vertical", command=canvas.yview)
         canvas.configure(yscrollcommand=scrollbar.set)
 
@@ -75,10 +75,7 @@ class FotoModelApp(tk.Tk):
         canvas.pack(side="left", fill="both", expand=True)
 
         canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
-        self.preview_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        self.preview_frame.bind("<Configure>",lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
     def upload_images(self):
         paths = filedialog.askopenfilenames(
@@ -91,6 +88,7 @@ class FotoModelApp(tk.Tk):
 
         self.images.clear()
 
+        # fotoğraflar yan yana gözüküyor ve çerçeveyi aşıyor aşağı indir.
         for path in paths:
             try:
                 img = Image.open(path)
@@ -98,20 +96,20 @@ class FotoModelApp(tk.Tk):
                 photo = ImageTk.PhotoImage(img)
                 self.images.append(photo)
 
-                frame = tk.Frame(self.preview_frame, bg="#020617", padx=5, pady=5)
+                frame = tk.Frame(self.preview_frame, bg="#234C6A", padx=5, pady=5)
                 frame.pack(side="left", padx=5)
 
                 tk.Label(frame, image=photo).pack()
-                tk.Label(frame, text=os.path.basename(path), fg="white", bg="#020617").pack()
+                tk.Label(frame, text=os.path.basename(path), fg="#456882", bg="#234C6A").pack()
 
                 self.log(f"Yüklendi: {path}")
 
             except Exception as e:
                 self.log(f"HATA: {e}")
 
-    # ---------------- Supabase Tab ----------------
+    # ---------------- Selection Tab ----------------
     def create_supabase_tab(self):
-        tab = tk.Frame(self.tabs, bg="#0f172a")
+        tab = tk.Frame(self.tabs, bg="#1B3C53")
         self.tabs.add(tab, text="Seçimler")
 
         ttk.Button(tab, text="🔄 Güncelle", command=self.load_supabase_data).pack(pady=10)
@@ -126,14 +124,14 @@ class FotoModelApp(tk.Tk):
 
             if not data:
                 return
-
-            columns = list(data[0].keys()).index(1)
+        
+            columns = list(data[0].keys())
             self.tree["columns"] = columns
             self.tree["show"] = "headings"
 
             for col in columns:
                 self.tree.heading(col, text=col)
-                self.tree.column(col, width=150)
+                self.tree.column(col, width=50)
 
             for row in data:
                 self.tree.insert("", "end", values=list(row.values()))
@@ -146,13 +144,13 @@ class FotoModelApp(tk.Tk):
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):
-        tab = tk.Frame(self.tabs, bg="#0f172a")
+        tab = tk.Frame(self.tabs, bg="#1B3C53")
         self.tabs.add(tab, text="Log")
 
         self.log_area = tk.Text(
             tab,
-            bg="#020617",
-            fg="#808b6c",
+            bg="#234C6A",
+            fg="#456882",
             font=("Consolas", 11)
         )
         self.log_area.pack(fill="both", expand=True, padx=10, pady=10)
