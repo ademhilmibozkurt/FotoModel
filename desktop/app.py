@@ -1,39 +1,37 @@
 import sys
-from database import createClient
-from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton
+from database import SupabaseDB
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QPushButton, QFileDialog
 
 class App(QWidget):
     def __init__(self):
         super().__init__()
+        self.supabase = SupabaseDB()
+
         self.setWindowTitle("Foto Model")
 
         layout = QVBoxLayout()
         self.log = QTextEdit()
 
-        # make these prettier
-        btn = QPushButton("Güncelle")
-        btn.clicked.connect(self.fetch_data)
+        uploadButton = QPushButton("Şablon Yükle")
+        uploadButton.clicked.connect(self.upload_photos)
 
-        layout.addWidget(btn)
+        # make these prettier
+        updateButton  = QPushButton("Güncelle")
+        updateButton.clicked.connect(self.fetch_selection)
+
+        layout.addWidget(uploadButton)
+        layout.addWidget(updateButton)
         layout.addWidget(self.log)
         self.setLayout(layout)
 
-        self.supabase = createClient()
+    def upload_photos(self):
+        filePath, _ = QFileDialog.getOpenFileName(self, 'Open', r'C:\ProgramFiles\FotoModel\templates', '*.jpg, *.png, *.avif, *.svg, *.webp')
+        with open(filePath, 'r', encoding='mbcs') as file_pointer:
+            self.lines = file_pointer.readlines()
 
-    # add a list of customers
-    # select one customer
-    # show selected photo templates
-    # add is_made button and allow for deletion
-    def fetch_data(self):
-        responses = (
-            self.supabase
-            .table("responses")
-            .select("*")
-            .order("created_at", desc=True)
-            .execute()
-        )
-
-        self.log.setText(str(responses))
+    def fetch_selection(self):
+        formResponses = self.supabase.fetch_data()
+        self.log.setText(str(formResponses))
 
 app = QApplication(sys.argv)
 window = App()
