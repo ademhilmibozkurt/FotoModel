@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
@@ -23,6 +24,7 @@ class FotoModelApp(ctk.CTk):
         self.image_paths = []
 
         self.create_ui()
+        self.create_spinner()
 
     # ---------------- UI ----------------
     def create_ui(self):
@@ -62,6 +64,53 @@ class FotoModelApp(ctk.CTk):
 
         self.create_supabase_tab()
         self.create_upload_tab()
+
+    # -------------- Spinner --------------
+    def create_spinner(self):
+        self.spinner_overlay = ctk.CTkFrame(
+        self,
+        fg_color=("gray90", "#020617"),corner_radius=0)
+
+        self.spinner_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.spinner_overlay.lower()
+
+        self.spinner = ctk.CTkProgressBar(
+            self.spinner_overlay,
+            mode="indeterminate",
+            width=300
+        )
+        self.spinner.pack(expand=True)
+
+        self.spinner_label = ctk.CTkLabel(
+            self.spinner_overlay,
+            text="Yükleniyor...",
+            font=ctk.CTkFont(size=14)
+        )
+        self.spinner_label.pack(pady=10)
+
+    def show_spinner(self, text="Yükleniyor..."):
+        self.spinner_label.configure(text=text)
+        self.spinner_overlay.lift()
+        self.spinner.start()
+
+    def hide_spinner(self):
+        self.spinner.stop()
+        self.spinner_overlay.lower()
+
+    def run_with_spinner(self, task, on_success=None, loading_text="Yükleniyor..."):
+        def worker():
+            try:
+                result = task()
+                if on_success:
+                    self.after(0, lambda: on_success(result))
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Hata", str(e)))
+                self.after(0, lambda: self.log(f"HATA: {e}"))
+            finally:
+                self.after(0, self.hide_spinner)
+
+        self.show_spinner(loading_text)
+        threading.Thread(target=worker, daemon=True).start()
 
     # ---------------- Selection Tab ----------------
     def create_supabase_tab(self):
@@ -104,12 +153,19 @@ class FotoModelApp(ctk.CTk):
 
     def load_supabase_data(self):
         try:
-            self.all_data = self.supabase.fetch_data()
-            self.refresh_tree(self.all_data)
-            self.log(f"Seçimler getirildi ({time.strftime('%H:%M:%S')})")
+            self.run_with_spinner(
+                task=self.supabase.fetch_template_selection(),
+                on_success=self.on_supabase_loaded(),
+                loading_text="Veriler getiriliyor..."
+            )
         except Exception as e:
             messagebox.showerror("Veritabanı Hatası", str(e))
             self.log(f"HATA: {e}")
+
+    def on_supabase_loaded(self, data):
+        self.all_data = data
+        self.refresh_tree(self.all_data)
+        self.log(f"Seçimler getirildi ({time.strftime('%H:%M:%S')})")
 
     def refresh_tree(self, data):
         self.tree.delete(*self.tree.get_children())
@@ -164,12 +220,13 @@ class FotoModelApp(ctk.CTk):
         canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
         self.preview_frame.bind("<Configure>",lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
-        print(self.image_paths)
         ctk.CTkButton(
             tab,
             text="Onayla",
-            command=lambda: self.supabase.upload_templates(self.image_paths)
+            command=lambda: self.upload_templates()
             ).pack(pady=10)
+        
+        
 
 
     def upload_images(self):
@@ -180,6 +237,7 @@ class FotoModelApp(ctk.CTk):
         
         self.image_paths.clear()
         self.image_paths.extend(paths)
+        print(self.image_paths)
 
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
@@ -214,6 +272,14 @@ class FotoModelApp(ctk.CTk):
 
             except Exception as e:
                 self.log(f"HATA: {e}")
+
+    
+
+    def upload_templates(self):
+        self.run_with_spinner(
+            task=lambda:self.supabase.upload_templates_todb(self.image_paths),
+            loading_text="Veri tabanına yükleniyor..."
+        )
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):

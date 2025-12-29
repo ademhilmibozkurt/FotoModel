@@ -13,7 +13,7 @@ class SupabaseDB(object):
         super().__init__()
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     # async veya daha hızlı yükleme metodları dene
-    def upload_templates(self, paths):
+    def upload_templates_todb(self, paths):
         try:
             for path in paths:
                 file_name = os.path.basename(path)
@@ -33,7 +33,7 @@ class SupabaseDB(object):
         except Exception as e:
             print("UPLOAD ERROR: ", e)
 
-    def fetch_data(self):
+    def fetch_template_selection(self):
         formatted = []
         response = (
             self.supabase
