@@ -1,10 +1,9 @@
 import os
 import json
 import mimetypes
-from PIL import Image
-from io import BytesIO
 from dotenv import load_dotenv
 from supabase import create_client
+from photoOperations import PhotoOperations
 
 load_dotenv()
 
@@ -15,13 +14,14 @@ class SupabaseDB(object):
     def __init__(self):
         super().__init__()
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        self.phop = PhotoOperations()
 
     def fetch_templates_fromdb(self):
         response = (
             self.supabase
             .storage
             .from_("foto_model")
-            .list("templates")
+            .list("templates/thumbs")
         )
         
         return [
@@ -34,7 +34,7 @@ class SupabaseDB(object):
             self.supabase
             .storage
             .from_("foto_model")
-            .download(f"templates/{filename}")
+            .download(f"templates/thumbs/{filename}")
         )
         if not response:
             raise ValueError("Boş response döndü")
@@ -56,15 +56,24 @@ class SupabaseDB(object):
                 mime_type, _ = mimetypes.guess_type(path)
                 if mime_type is None:
                     raise Exception(f"Mime type bulunamadı: {path}")
+                
+                # original
+                original_buf = self.phop.resize_image(path, width=768, height=432)
+                self.supabase.storage.from_("foto_model").upload(
+                    f"templates/original/{file_name}",
+                    original_buf,
+                    file_options={"content-type": mime_type}
+                )
 
-                with open(path, "rb") as file:
-                    response = (
-                        self.supabase.storage
-                        .from_("foto_model")
-                        .upload(f"/templates/{file_name}", file, file_options={"content-type": mime_type})
-                    )
+                # thumbnail
+                thumb_buf = self.phop.resize_image(path, width=256, height=144)
+                self.supabase.storage.from_("foto_model").upload(
+                    f"templates/thumbs/{file_name}",
+                    thumb_buf,
+                    file_options={"content-type": mime_type}
+                )
                     
-            print("UPLOAD RESPONSE: ", response)
+            print("UPLOAD RESPONSE: Uploaded!")
         except Exception as e:
             print("UPLOAD ERROR: ", e)
 

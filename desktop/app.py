@@ -7,6 +7,7 @@ import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk
 from database import SupabaseDB
+from photoOperations import PhotoOperations
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -20,6 +21,7 @@ class FotoModelApp(ctk.CTk):
         self.geometry("1400x800")
 
         self.supabase = SupabaseDB()
+        self.phop = PhotoOperations()
         self.all_data = []
         self.images = []
         self.image_paths = []
@@ -290,7 +292,7 @@ class FotoModelApp(ctk.CTk):
         for path in paths:
             try:
                 img = Image.open(path)
-                img.thumbnail((180, 180))
+                img.thumbnail((200, 150))
                 photo = ImageTk.PhotoImage(img)
                 self.images.append(photo)
 
@@ -320,6 +322,11 @@ class FotoModelApp(ctk.CTk):
             task=lambda:self.supabase.upload_templates_todb(self.image_paths),
             loading_text="Veri tabanına yükleniyor..."
         )
+
+        # ekranı temizle yeni yüklemeler için
+        for widget in self.preview_frame.winfo_children():
+            widget.destroy()
+        self.images.clear()
     
     # fetch photo list from db
     def fetch_templates(self):
@@ -353,12 +360,12 @@ class FotoModelApp(ctk.CTk):
             try:
                 res = self.supabase.download_templates_fromdb(filename)
                 img = Image.open(BytesIO(res))
-                img = self.crop_center_square(img, 180)
+                img = self.phop.crop_center_square(img, 200,150)
                 
                 ctk_img = ctk.CTkImage(
                     light_image=img,
                     dark_image=img,
-                    size=(180, 180)
+                    size=(200, 150)
                 )
 
                 frame = ctk.CTkFrame(self.preview_frame, corner_radius=12)
@@ -379,20 +386,7 @@ class FotoModelApp(ctk.CTk):
                     row += 1
 
             except Exception as e:
-                print(f"Hata ({filename}):", e)
-
-    # cropping image
-    def crop_center_square(self, img: Image.Image, size=180):
-        w, h = img.size
-        min_side = min(w, h)
-
-        left = (w - min_side) // 2
-        top = (h - min_side) // 2
-        right = left + min_side
-        bottom = top + min_side
-
-        img = img.crop((left, top, right, bottom))
-        return img.resize((size, size), Image.LANCZOS)
+                print(f"HATA: ({filename}):", e)
 
     # delete selected templates from supabase storage
     def delete_selected_templates(self):
