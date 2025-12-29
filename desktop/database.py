@@ -16,67 +16,7 @@ class SupabaseDB(object):
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.phop = PhotoOperations()
 
-    def fetch_templates_fromdb(self):
-        response = (
-            self.supabase
-            .storage
-            .from_("foto_model")
-            .list("templates/thumbs")
-        )
-        
-        return [
-            res for res in response
-            if not res["name"].startswith(".")
-        ]
-    
-    def download_templates_fromdb(self, filename):
-        response = (
-            self.supabase
-            .storage
-            .from_("foto_model")
-            .download(f"templates/thumbs/{filename}")
-        )
-        if not response:
-            raise ValueError("Boş response döndü")
-
-        try:
-            json.loads(response.decode("utf-8"))
-            raise ValueError("Image yerine JSON döndü (policy veya path hatası)")
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            pass  
-
-        return response
-
-    # async veya daha hızlı yükleme metodları dene
-    def upload_templates_todb(self, paths):
-        try:
-            for path in paths:
-                file_name = os.path.basename(path)
-
-                mime_type, _ = mimetypes.guess_type(path)
-                if mime_type is None:
-                    raise Exception(f"Mime type bulunamadı: {path}")
-                
-                # original
-                original_buf = self.phop.resize_image(path, width=768, height=432)
-                self.supabase.storage.from_("foto_model").upload(
-                    f"templates/original/{file_name}",
-                    original_buf,
-                    file_options={"content-type": mime_type}
-                )
-
-                # thumbnail
-                thumb_buf = self.phop.resize_image(path, width=256, height=144)
-                self.supabase.storage.from_("foto_model").upload(
-                    f"templates/thumbs/{file_name}",
-                    thumb_buf,
-                    file_options={"content-type": mime_type}
-                )
-                    
-            print("UPLOAD RESPONSE: Uploaded!")
-        except Exception as e:
-            print("UPLOAD ERROR: ", e)
-
+    # fetch form selections from db
     def fetch_template_selection(self):
         formatted = []
         response = (
@@ -99,3 +39,72 @@ class SupabaseDB(object):
             })
 
         return formatted
+
+    # fetch işleminde her sefer ui donuyor
+    def fetch_templates_fromdb(self):
+        response = (
+            self.supabase
+            .storage
+            .from_("foto_model")
+            .list("templates/thumbs")
+        )
+        
+        return [
+            res for res in response
+            if not res["name"].startswith(".")
+        ]
+    
+    def download_templates_fromdb(self, filename):
+        response = (
+            self.supabase
+            .storage
+            .from_("foto_model")
+            .download(f"templates/thumbs/{filename}")
+        )
+        if not response:
+            raise ValueError("Boş response döndü!")
+
+        try:
+            json.loads(response.decode("utf-8"))
+            raise ValueError("Image yerine JSON döndü (policy veya path hatası)")
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            pass  
+
+        return response
+
+    # async veya daha hızlı yükleme metodları dene
+    def upload_templates_todb(self, paths):
+        try:
+            for path in paths:
+                file_name = os.path.basename(path)
+
+                mime_type, _ = mimetypes.guess_type(path)
+                if mime_type is None:
+                    raise Exception(f"Mime type bulunamadı: {path}")
+                
+                # original
+                # !!! original fotoları bozulmadan kırpmanın bir yolunu bul !!!
+                original_buf = self.phop.resize_original_image(path)
+                self.supabase.storage.from_("foto_model").upload(
+                    f"templates/original/{file_name}",
+                    original_buf,
+                    file_options={"content-type": mime_type}
+                )
+
+                # thumbnail
+                thumb_buf = self.phop.resize_thumb_image(path, width=200, height=200)
+                self.supabase.storage.from_("foto_model").upload(
+                    f"templates/thumbs/{file_name}",
+                    thumb_buf,
+                    file_options={"content-type": mime_type}
+                )
+                    
+            print("UPLOAD RESPONSE: Uploaded!")
+        except Exception as e:
+            print("UPLOAD ERROR: ", e)
+
+    def delete_template_fromdb(self, filename):
+        return self.supabase.storage.from_("foto_model").remove([
+            f"templates/original/{filename}",
+            f"templates/thumbs/{filename}"
+        ])

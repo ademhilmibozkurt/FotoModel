@@ -281,7 +281,6 @@ class FotoModelApp(ctk.CTk):
         
         self.image_paths.clear()
         self.image_paths.extend(paths)
-        print(self.image_paths)
 
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
@@ -411,12 +410,14 @@ class FotoModelApp(ctk.CTk):
 
         try:
             for filename in selected:
-                self.supabase.delete_template(filename)
+                self.supabase.delete_template_fromdb(filename)
 
-            self.after(0, self.load_templates_from_db)
+            # !!! cache mekanizması ekle fotolar çok geç geliyor ve ui donuyor !!!
+            self.after(0, self.fetch_templates)
+            print("DELETE RESPONSE: Deleted!")
 
         except Exception as e:
-            self.after(0, lambda: messagebox.showerror("Hata", str(e)))
+            self.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
 
         finally:
             self.after(0, self.hide_spinner)
