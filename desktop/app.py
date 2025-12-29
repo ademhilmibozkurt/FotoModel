@@ -222,6 +222,12 @@ class FotoModelApp(ctk.CTk):
             command=self.upload_images
         ).pack(pady=10)
 
+        ctk.CTkButton(
+            tab,
+            text="Şablonları Getir",
+            command=self.fetch_templates
+        ).pack(side="right", padx=3)
+
         canvas = tk.Canvas(tab, bg="#1f2937", highlightthickness=0)
         canvas.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -240,12 +246,6 @@ class FotoModelApp(ctk.CTk):
             text="Onayla",
             command=lambda: self.upload_templates
             ).pack(pady=10)
-        
-        ctk.CTkButton(
-            tab,
-            text="Şablonları Getir",
-            command=self.fetch_templates
-        ).pack(side="right", padx=5)
 
         ctk.CTkButton(
             tab,
@@ -253,7 +253,7 @@ class FotoModelApp(ctk.CTk):
             fg_color="#B91C1C",
             hover_color="#7F1D1D",
             command=self.delete_selected_templates
-        ).pack(pady=10)
+        ).pack(pady=10, padx=5)
 
     # upload template photos to supabase storage
     def upload_images(self):
@@ -337,9 +337,9 @@ class FotoModelApp(ctk.CTk):
 
             try:
                 res = self.supabase.download_templates_fromdb(filename)
-                img = Image.open(BytesIO(res))
-                img.thumbnail((180, 180))
-
+                img = Image.open(res)
+                img = self.crop_center_square(img, 180)
+                
                 ctk_img = ctk.CTkImage(
                     light_image=img,
                     dark_image=img,
@@ -365,6 +365,19 @@ class FotoModelApp(ctk.CTk):
 
             except Exception as e:
                 print(f"Hata ({filename}):", e)
+
+    # cropping image
+    def crop_center_square(self, img: Image.Image, size=180):
+        w, h = img.size
+        min_side = min(w, h)
+
+        left = (w - min_side) // 2
+        top = (h - min_side) // 2
+        right = left + min_side
+        bottom = top + min_side
+
+        img = img.crop((left, top, right, bottom))
+        return img.resize((size, size), Image.LANCZOS)
 
     # delete selected templates from supabase storage
     def delete_selected_templates(self):
