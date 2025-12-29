@@ -1,6 +1,7 @@
 import os
 import time
 import threading
+from io import BytesIO
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
@@ -22,6 +23,7 @@ class FotoModelApp(ctk.CTk):
         self.all_data = []
         self.images = []
         self.image_paths = []
+        self.template_widgets = [] 
 
         self.create_ui()
         self.create_spinner()
@@ -96,6 +98,18 @@ class FotoModelApp(ctk.CTk):
     def hide_spinner(self):
         self.spinner.stop()
         self.spinner_overlay.lower()
+
+    
+    def start_spinner(self):
+        self.spinner.start()
+        self.spinner_label.configure(text="İşlem yapılıyor...")
+        self.spinner.pack(pady=10)
+        self.spinner_label.pack()
+
+    def stop_spinner(self):
+        self.spinner.stop()
+        self.spinner.pack_forget()
+        self.spinner_label.pack_forget()
 
     def run_with_spinner(self, task, on_success=None, loading_text="Yükleniyor..."):
         def worker():
@@ -220,15 +234,28 @@ class FotoModelApp(ctk.CTk):
         canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
         self.preview_frame.bind("<Configure>",lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
+        # submit, fetch and delete buttons
         ctk.CTkButton(
             tab,
             text="Onayla",
-            command=lambda: self.upload_templates()
+            command=lambda: self.upload_templates
             ).pack(pady=10)
         
-        
+        ctk.CTkButton(
+            tab,
+            text="Şablonları Getir",
+            command=self.fetch_templates
+        ).pack(side="right", padx=5)
 
+        ctk.CTkButton(
+            tab,
+            text="🗑 Seçilenleri Sil",
+            fg_color="#B91C1C",
+            hover_color="#7F1D1D",
+            command=self.delete_selected_templates
+        ).pack(pady=10)
 
+    # upload template photos to supabase storage
     def upload_images(self):
         paths = filedialog.askopenfilenames(
             title="Şablon Seç",
@@ -273,13 +300,104 @@ class FotoModelApp(ctk.CTk):
             except Exception as e:
                 self.log(f"HATA: {e}")
 
-    
-
     def upload_templates(self):
         self.run_with_spinner(
             task=lambda:self.supabase.upload_templates_todb(self.image_paths),
             loading_text="Veri tabanına yükleniyor..."
         )
+    
+    # fetch photo list from db
+    def fetch_templates(self):
+        threading.Thread(
+            target=self.fetch_templates_worker,
+            daemon=True
+        ).start()
+
+    def fetch_templates_worker(self):
+        self.after(0, self.start_spinner)
+
+        try:
+            templates = self.supabase.fetch_templates_fromdb()
+            self.after(0, lambda: self.show_templates_as_images(templates))
+
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("HATA:", str(e)))
+
+        finally:
+            self.after(0, self.stop_spinner)
+
+    # download and show fetched list
+    def show_templates_as_images(self, templates):
+        for widget in self.preview_frame.winfo_children():
+            widget.destroy()
+
+        row, col = 0, 0
+        for t in templates:
+            filename = t["name"]
+
+            try:
+                res = self.supabase.download_templates_fromdb(filename)
+                img = Image.open(BytesIO(res))
+                img.thumbnail((180, 180))
+
+                ctk_img = ctk.CTkImage(
+                    light_image=img,
+                    dark_image=img,
+                    size=(180, 180)
+                )
+
+                frame = ctk.CTkFrame(self.preview_frame, corner_radius=12)
+                frame.grid(row=row, column=col, padx=15, pady=15, sticky="n")
+
+                lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
+                lbl.pack(padx=10, pady=(10,5))
+
+                var = ctk.BooleanVar()
+                chk = ctk.CTkCheckBox(frame, text="Seç", variable=var)
+                chk.pack(pady=(0,10))
+
+                self.template_widgets.append((filename, var))
+
+                col += 1
+                if col >= 5:
+                    col = 0
+                    row += 1
+
+            except Exception as e:
+                print(f"Hata ({filename}):", e)
+
+    # delete selected templates from supabase storage
+    def delete_selected_templates(self):
+        selected = [
+            filename
+            for filename, var in self.template_widgets
+            if var.get()
+        ]
+
+        if not selected:
+            messagebox.showinfo("Bilgi", "Silinecek şablon seçilmedi.")
+            return
+
+        threading.Thread(
+            target=self.delete_templates_worker,
+            args=(selected,),
+            daemon=True
+        ).start()
+
+    def delete_templates_worker(self, selected):
+        self.after(0, self.start_spinner)
+
+        try:
+            for filename in selected:
+                self.supabase.delete_template(filename)
+
+            self.after(0, self.load_templates_from_db)
+
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("Hata", str(e)))
+
+        finally:
+            self.after(0, self.stop_spinner)
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):

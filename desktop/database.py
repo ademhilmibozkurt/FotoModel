@@ -1,5 +1,8 @@
 import os
+import json
 import mimetypes
+from PIL import Image
+from io import BytesIO
 from dotenv import load_dotenv
 from supabase import create_client
 
@@ -12,6 +15,38 @@ class SupabaseDB(object):
     def __init__(self):
         super().__init__()
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    def fetch_templates_fromdb(self):
+        response = (
+            self.supabase
+            .storage
+            .from_("foto_model")
+            .list("templates")
+        )
+        
+        return [
+            res for res in response
+            if not res["name"].startswith(".")
+        ]
+    
+    def download_templates_fromdb(self, filename):
+        response = (
+            self.supabase
+            .storage
+            .from_("foto_model")
+            .download(f"templates/{filename}")
+        )
+        if not response:
+            raise ValueError("Boş response döndü")
+
+        try:
+            json.loads(response.decode("utf-8"))
+            raise ValueError("Image yerine JSON döndü (policy veya path hatası)")
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            pass  
+
+        return response
+
     # async veya daha hızlı yükleme metodları dene
     def upload_templates_todb(self, paths):
         try:
