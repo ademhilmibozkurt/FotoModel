@@ -216,44 +216,59 @@ class FotoModelApp(ctk.CTk):
     def create_upload_tab(self):
         tab = self.tabs.tab("Şablon Yükleme")
 
+        # top of the upload tab
+        top_bar = ctk.CTkFrame(tab, fg_color="transparent")
+        top_bar.pack(fill="x", padx=15, pady=(10, 5))
+
         ctk.CTkButton(
-            tab,
+            top_bar,
             text="📂 Görselleri Yükle",
             command=self.upload_images
-        ).pack(pady=10)
+        ).pack(side="left", padx=(0,10))
 
         ctk.CTkButton(
-            tab,
+            top_bar,
             text="Şablonları Getir",
             command=self.fetch_templates
-        ).pack(side="right", padx=3)
+        ).pack(side="left")
 
-        canvas = tk.Canvas(tab, bg="#1f2937", highlightthickness=0)
-        canvas.pack(fill="both", expand=True, padx=10, pady=10)
+        # content section of the upload tab
+        content_frame = ctk.CTkFrame(tab)
+        content_frame.pack(fill="both", expand=True, padx=15, pady=10)
+
+        canvas = tk.Canvas(content_frame, bg="#1f2937", highlightthickness=0)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
 
         self.preview_frame = tk.Frame(canvas, bg="#1f2937")
-        scrollbar = ttk.Scrollbar(tab, orient="vertical", command=canvas.yview)
-
-        canvas.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
-
         canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
         self.preview_frame.bind("<Configure>",lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
+        # scroll with mouse
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
         # submit, fetch and delete buttons
-        ctk.CTkButton(
-            tab,
-            text="Onayla",
-            command=lambda: self.upload_templates
-            ).pack(pady=10)
+        bottom_bar = ctk.CTkFrame(tab, fg_color="transparent")
+        bottom_bar.pack(fill="x", padx=15, pady=(5, 15))
 
         ctk.CTkButton(
-            tab,
+            bottom_bar,
+            text="Onayla",
+            command=self.upload_templates
+            ).pack(side="left")
+
+        ctk.CTkButton(
+            bottom_bar,
             text="🗑 Seçilenleri Sil",
             fg_color="#B91C1C",
             hover_color="#7F1D1D",
             command=self.delete_selected_templates
-        ).pack(pady=10, padx=5)
+        ).pack(side="right")
 
     # upload template photos to supabase storage
     def upload_images(self):
@@ -314,7 +329,7 @@ class FotoModelApp(ctk.CTk):
         ).start()
 
     def fetch_templates_worker(self):
-        self.after(0, self.start_spinner)
+        self.after(0, self.show_spinner)
 
         try:
             templates = self.supabase.fetch_templates_fromdb()
@@ -324,7 +339,7 @@ class FotoModelApp(ctk.CTk):
             self.after(0, lambda: messagebox.showerror("HATA:", str(e)))
 
         finally:
-            self.after(0, self.stop_spinner)
+            self.after(0, self.hide_spinner)
 
     # download and show fetched list
     def show_templates_as_images(self, templates):
@@ -337,7 +352,7 @@ class FotoModelApp(ctk.CTk):
 
             try:
                 res = self.supabase.download_templates_fromdb(filename)
-                img = Image.open(res)
+                img = Image.open(BytesIO(res))
                 img = self.crop_center_square(img, 180)
                 
                 ctk_img = ctk.CTkImage(
@@ -398,7 +413,7 @@ class FotoModelApp(ctk.CTk):
         ).start()
 
     def delete_templates_worker(self, selected):
-        self.after(0, self.start_spinner)
+        self.after(0, self.show_spinner)
 
         try:
             for filename in selected:
@@ -410,7 +425,7 @@ class FotoModelApp(ctk.CTk):
             self.after(0, lambda: messagebox.showerror("Hata", str(e)))
 
         finally:
-            self.after(0, self.stop_spinner)
+            self.after(0, self.hide_spinner)
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):
