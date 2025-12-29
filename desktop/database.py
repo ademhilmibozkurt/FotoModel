@@ -1,4 +1,5 @@
 import os
+import mimetypes
 from dotenv import load_dotenv
 from supabase import create_client
 
@@ -11,11 +12,27 @@ class SupabaseDB(object):
     def __init__(self):
         super().__init__()
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    # async veya daha hızlı yükleme metodları dene
+    def upload_templates(self, paths):
+        try:
+            for path in paths:
+                file_name = os.path.basename(path)
 
-    def upload_templates(self, photos: list):
-        print(photos)
-        return None
-    
+                mime_type, _ = mimetypes.guess_type(path)
+                if mime_type is None:
+                    raise Exception(f"Mime type bulunamadı: {path}")
+
+                with open(path, "rb") as file:
+                    response = (
+                        self.supabase.storage
+                        .from_("foto_model")
+                        .upload(f"/templates/{file_name}", file, file_options={"content-type": mime_type})
+                    )
+                    
+            print("UPLOAD RESPONSE: ", response)
+        except Exception as e:
+            print("UPLOAD ERROR: ", e)
+
     def fetch_data(self):
         formatted = []
         response = (

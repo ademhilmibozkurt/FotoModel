@@ -1,7 +1,7 @@
 import os
 import time
-import customtkinter as ctk
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk
 from database import SupabaseDB
@@ -20,6 +20,7 @@ class FotoModelApp(ctk.CTk):
         self.supabase = SupabaseDB()
         self.all_data = []
         self.images = []
+        self.image_paths = []
 
         self.create_ui()
 
@@ -163,17 +164,22 @@ class FotoModelApp(ctk.CTk):
         canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
         self.preview_frame.bind("<Configure>",lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
 
+        print(self.image_paths)
         ctk.CTkButton(
             tab,
             text="Onayla",
-            command=lambda: self.supabase.upload_templates(self.images)
-        ).pack(pady=10)
+            command=lambda: self.supabase.upload_templates(self.image_paths)
+            ).pack(pady=10)
+
 
     def upload_images(self):
         paths = filedialog.askopenfilenames(
             title="Şablon Seç",
             filetypes=[("Images", "*.jpg *.png *.webp *.avif")]
         )
+        
+        self.image_paths.clear()
+        self.image_paths.extend(paths)
 
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
