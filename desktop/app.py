@@ -299,12 +299,17 @@ class FotoModelApp(ctk.CTk):
         self.template_cards = []
         self.templates_ready = False
 
+        self.pil_cache = {}
+
         try:
             for path in paths:
-                img = Image.open(path)
-                img.thumbnail((200, 150))
-                photo = ImageTk.PhotoImage(img)
-                self.images.append(photo)
+                # caching - refactor code below
+                if path not in self.pil_cache:
+                    img = Image.open(path)
+                    img.thumbnail((200, 150))
+                    photo = ImageTk.PhotoImage(img)
+                    self.pil_cache[path] = img
+                    self.images.append(photo)
 
                 frame = tk.Frame(self.preview_frame, bg="#111827", width=self.CARD_WIDTH, height=self.CARD_HEIGHT)
                 # content on the frame fixed
@@ -373,25 +378,28 @@ class FotoModelApp(ctk.CTk):
         # prevent previous residue before resizing window   
         self._current_cols = None
 
-        self.image_cache = {}
+        self.pil_cache = {}
+        self.ctk_cache = {}
     
         try:
             for t in templates:
                 filename = t["name"]
 
                 res = self.supabase.download_templates_fromdb(filename)
-                img = Image.open(BytesIO(res))
-                img = self.phop.crop_center_square(img, 200,150)
 
-                # caching mechanism for prevent resizing freeze
-                if filename not in self.image_cache:
-                    self.image_cache[filename] = ctk.CTkImage(
-                    light_image=img,
-                    dark_image=img,
+                # caching mechanism for prevent resizing freeze - refactor code below
+                if filename not in self.pil_cache:
+                    img = Image.open(BytesIO(res))
+                    img = self.phop.crop_center_square(img, 200, 150)
+                    self.pil_cache[filename] = img
+
+                if filename not in self.ctk_cache:
+                    self.ctk_cache[filename] = ctk.CTkImage(
+                    light_image=self.pil_cache[filename],
+                    dark_image=self.pil_cache[filename],
                     size=(200, 150)
                 )
-
-                ctk_img = self.image_cache[filename]    
+                ctk_img = self.ctk_cache[filename]    
 
                 frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
                 frame.grid_propagate(False)
@@ -448,7 +456,7 @@ class FotoModelApp(ctk.CTk):
         if hasattr(self, "_resize_job"):
             self.after_cancel(self._resize_job)
 
-        self._resize_job = self.after(150, self.relayout_gallery)
+        self._resize_job = self.after(120, self.relayout_gallery)
 
     # delete selected templates from supabase storage
     def delete_selected_templates(self):
