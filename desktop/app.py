@@ -372,36 +372,37 @@ class FotoModelApp(ctk.CTk):
         self.templates_ready = False 
         # prevent previous residue before resizing window   
         self._current_cols = None
+
+        self.image_cache = {}
     
         try:
             for t in templates:
                 filename = t["name"]
-                var = ctk.BooleanVar()
 
                 res = self.supabase.download_templates_fromdb(filename)
                 img = Image.open(BytesIO(res))
                 img = self.phop.crop_center_square(img, 200,150)
 
-                ctk_img = ctk.CTkImage(
+                # caching mechanism for prevent resizing freeze
+                if filename not in self.image_cache:
+                    self.image_cache[filename] = ctk.CTkImage(
                     light_image=img,
                     dark_image=img,
                     size=(200, 150)
                 )
 
+                ctk_img = self.image_cache[filename]    
+
                 frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
                 frame.grid_propagate(False)
 
-                lbl = ctk.CTkLabel(
-                    frame, 
-                    image=ctk_img, 
-                    text=""
-                    )
-                
+                lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
                 lbl.image = ctk_img
                 lbl.pack(padx=10, pady=(10, 5))
 
-                chk = ctk.CTkCheckBox(frame, text="Seç", variable=var)
-                chk.pack(pady=(0, 10))
+                # toggle select added for preventing resizing freeze
+                frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+                lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
 
                 self.template_cards.append(frame)
 
@@ -410,6 +411,11 @@ class FotoModelApp(ctk.CTk):
         
         except Exception as e:
             print(f"HATA: ({filename}):", e)
+
+    def toggle_select(self, frame):
+        selected = getattr(frame, "selected", False)
+        frame.selected = not selected
+        frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
 
     def relayout_gallery(self):
         canvas_width = self.canvas.winfo_width()
