@@ -490,17 +490,39 @@ class FotoModelApp(ctk.CTk):
     # fetch photo list from db
     def fetch_templates(self, folder="thumbs"):
         self._current_cols = None
+        self.show_spinner()
+
         threading.Thread(
-            target=self.fetch_templates_worker(folder),
+            target=self.fetch_templates_worker,
+            args=(folder,),
             daemon=True
         ).start()
 
     def fetch_templates_worker(self, folder):
-        self.after(0, self.show_spinner)
-
         try:
             templates = self.supabase.fetch_templates_fromdb(folder=folder)
-            self.after(0, lambda: self.show_templates_as_images(templates))
+            
+            cards = []
+            pil_cache = {}
+            ctk_cache = {}
+
+            for t in templates:
+                filename = t["name"]
+
+                res = self.supabase.download_templates_fromdb(filename)
+                img = Image.open(BytesIO(res))
+                img = self.phop.crop_center_square(img, 200, 150)
+
+                pil_cache[filename] = img
+                ctk_cache[filename] = ctk.CTkImage(
+                    light_image=img,
+                    dark_image=img,
+                    size=(200, 150)
+                )
+
+                cards.append((filename, ctk_cache[filename]))
+
+            self.after(0, lambda: self.show_templates(cards))
 
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("HATA:", str(e)))
@@ -509,57 +531,34 @@ class FotoModelApp(ctk.CTk):
             self.after(0, self.hide_spinner)
 
     # download and show fetched list
-    def show_templates_as_images(self, templates):
-        # clean previous photo upload residue
+    def show_templates(self, templates):
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
         self.template_cards = []
-        self.templates_ready = False 
-        # prevent previous residue before resizing window   
+        self.templates_ready = False
         self._current_cols = None
 
-        self.pil_cache = {}
-        self.ctk_cache = {}
-    
-        try:
-            for t in templates:
-                filename = t["name"]
+        for filename, ctk_img in templates:
+            frame = ctk.CTkFrame(
+                self.preview_frame,
+                width=self.CARD_WIDTH,
+                height=self.CARD_HEIGHT,
+                corner_radius=12
+            )
+            frame.grid_propagate(False)
 
-                res = self.supabase.download_templates_fromdb(filename)
+            lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
+            lbl.image = ctk_img
+            lbl.pack(padx=10, pady=(10, 5))
 
-                # caching mechanism for prevent resizing freeze - refactor code below
-                if filename not in self.pil_cache:
-                    img = Image.open(BytesIO(res))
-                    img = self.phop.crop_center_square(img, 200, 150)
-                    self.pil_cache[filename] = img
+            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+            lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
 
-                if filename not in self.ctk_cache:
-                    self.ctk_cache[filename] = ctk.CTkImage(
-                    light_image=self.pil_cache[filename],
-                    dark_image=self.pil_cache[filename],
-                    size=(200, 150)
-                )
-                ctk_img = self.ctk_cache[filename]    
+            self.template_cards.append(frame)
 
-                frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
-                frame.grid_propagate(False)
-
-                lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
-                lbl.image = ctk_img
-                lbl.pack(padx=10, pady=(10, 5))
-
-                # toggle select added for preventing resizing freeze
-                frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
-                lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
-
-                self.template_cards.append(frame)
-
-            self.templates_ready = True
-            self.relayout_gallery()
-        
-        except Exception as e:
-            print(f"HATA: ({filename}):", e)
+        self.templates_ready = True
+        self.relayout_gallery()
 
     def toggle_select(self, frame):
         selected = getattr(frame, "selected", False)
