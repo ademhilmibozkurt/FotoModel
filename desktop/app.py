@@ -180,6 +180,9 @@ class FotoModelApp(ctk.CTk):
         # open new window with double click
         self.tree.bind("<Double-1>", self.on_tree_double_click)
 
+        # is_completed state toggle
+        self.tree.bind("<Button-1>", self.on_tree_single_click)
+
     def load_supabase_data(self):
         try:
             self.run_with_spinner(
@@ -203,17 +206,27 @@ class FotoModelApp(ctk.CTk):
             return
 
         columns = list(data[0].keys())
+
+        # add is_completed state
+        if "Durum" not in columns:
+            columns.insert(0, "Durum")
+
         self.tree["columns"] = columns
         self.tree["show"] = "headings"
 
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=150)
+            self.tree.column(col, width=80)
 
         # for show selected templates in new window
         self.tree_record_map = {}
         for row in data:
-            item_id = self.tree.insert("", "end", values=list(row.values()))
+            completed = row.get("is_completed", False)
+            status_text = "✔" if completed else "⬜"
+            
+            values = [status_text] + list(row.values())
+
+            item_id = self.tree.insert("", "end", values=values)
             self.tree_record_map[item_id] = row
 
     def filter_tree(self, *args):
@@ -229,6 +242,31 @@ class FotoModelApp(ctk.CTk):
         ]
 
         self.refresh_tree(filtered)
+
+    # on single click update is_completed state
+    def on_tree_single_click(self, event):
+        region = self.tree.identify("region", event.x, event.y)
+        if region != "cell":
+            return
+
+        column = self.tree.identify_column(event.x)
+        if column != "#1":  # Durum kolonu
+            return
+
+        row_id = self.tree.identify_row(event.y)
+        if not row_id:
+            return
+
+        values = list(self.tree.item(row_id, "values"))
+        current = values[0]
+
+        new_value = "✔" if current == "⬜" else "⬜"
+        values[0] = new_value
+        self.tree.item(row_id, values=values)
+
+        record = self.tree_record_map.get(row_id)
+        if record:
+            self.supabase.update_completed_status(record, new_value == "✔")
 
     def on_tree_double_click(self, event):
         selected = self.tree.selection()
@@ -275,13 +313,19 @@ class FotoModelApp(ctk.CTk):
         scroll = ctk.CTkScrollableFrame(parent)
         scroll.pack(fill="both", expand=True, padx=20, pady=10)
 
+        self.image_cache = {}
+
         for filename in selected_templates:
             ctk.CTkLabel(
                 scroll,
                 text=filename,
-                font=("Arial", 16, "bold")
+                font=("Arial", 14)
             ).pack(anchor="w", pady=(10, 5))
 
+            # image loading cache
+            if filename in self.image_cache:
+                return self.image_cache[filename]
+            
             image = self.supabase.download_templates_fromdb(filename, folder="original")
 
             row = ctk.CTkFrame(scroll)

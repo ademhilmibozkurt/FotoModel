@@ -4,6 +4,7 @@ import mimetypes
 from dotenv import load_dotenv
 from supabase import create_client
 from photoOperations import PhotoOperations
+from datetime import datetime
 
 load_dotenv()
 
@@ -22,7 +23,7 @@ class SupabaseDB(object):
         response = (
             self.supabase
             .table("responses")
-            .select("phone_number, full_name, selected_templates, created_at")
+            .select("id, phone_number, full_name, selected_templates, created_at")
             .order("created_at", desc=True)
             .execute()
             .data
@@ -32,6 +33,7 @@ class SupabaseDB(object):
         # telefon formatını formda ayarla !!
         for item in response:
             formatted.append({
+                "id": item.get("id"),
                 "Telefon": item.get("phone_number"),
                 "İsim": item.get("full_name"),
                 "Tarih": item.get("created_at"),
@@ -39,6 +41,15 @@ class SupabaseDB(object):
             })
 
         return formatted
+    
+    def update_completed_status(self, record, is_completed):
+        self.supabase.table("responses") \
+            .update({
+                "is_completed": is_completed,
+                "completed_at": datetime.utcnow().isoformat() if is_completed else None
+            }) \
+            .eq("id", record["id"]) \
+            .execute()
 
     # fetch işleminde her sefer ui donuyor
     def fetch_templates_fromdb(self, folder="thumbs"):
