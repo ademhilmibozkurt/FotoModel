@@ -241,8 +241,11 @@ class FotoModelApp(ctk.CTk):
         if not record:
             return
 
-        self.open_selection_detail(record)
-
+        self.run_with_spinner(
+            task=lambda: self.open_selection_detail(record),
+            loading_text="Yükleniyor..."
+        )
+        
     # !! fotoğraflar grid yapısında yan yana gözükmeli altalta gözüküyor !!
     # selected templates window
     def open_selection_detail(self, record):
@@ -261,7 +264,11 @@ class FotoModelApp(ctk.CTk):
         if isinstance(selected, str):
             selected = json.loads(selected)
 
-        self.render_selected_photos(window, selected)
+        threading.Thread(
+            target=self.render_selected_photos,
+            args=(window, selected),
+            daemon=True
+        ).start()
 
     # get images from db - this code below doing same job like show_templates_as_image
     def render_selected_photos(self, parent, selected_templates):
