@@ -41,12 +41,12 @@ class SupabaseDB(object):
         return formatted
 
     # fetch işleminde her sefer ui donuyor
-    def fetch_templates_fromdb(self):
+    def fetch_templates_fromdb(self, folder="thumbs"):
         response = (
             self.supabase
             .storage
             .from_("foto_model")
-            .list("templates/thumbs")
+            .list(f"templates/{folder}")
         )
         
         return [
@@ -54,12 +54,12 @@ class SupabaseDB(object):
             if not res["name"].startswith(".")
         ]
     
-    def download_templates_fromdb(self, filename):
+    def download_templates_fromdb(self, filename, folder="thumbs"):
         response = (
             self.supabase
             .storage
             .from_("foto_model")
-            .download(f"templates/thumbs/{filename}")
+            .download(f"templates/{folder}/{filename}")
         )
         if not response:
             raise ValueError("Boş response döndü!")

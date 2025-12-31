@@ -1,11 +1,12 @@
 import os
 import time
+import json
 import threading
 from io import BytesIO
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
-from PIL import Image, ImageTk
+from PIL import Image
 from database import SupabaseDB
 from photoOperations import PhotoOperations
 
@@ -52,7 +53,7 @@ class FotoModelApp(ctk.CTk):
 
         if os.path.exists("logo.jpg"):
             logo_img = Image.open("logo.jpg").resize((50, 50))
-            self.logo = ImageTk.PhotoImage(logo_img)
+            self.logo = ctk.CTkImage(logo_img)
 
             ctk.CTkLabel(
                 header,
@@ -176,11 +177,14 @@ class FotoModelApp(ctk.CTk):
         self.tree = ttk.Treeview(tab)
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
+        # open new window with double click
+        self.tree.bind("<Double-1>", self.on_tree_double_click)
+
     def load_supabase_data(self):
         try:
             self.run_with_spinner(
-                task=self.supabase.fetch_template_selection(),
-                on_success=self.on_supabase_loaded(),
+                task=self.supabase.fetch_template_selection,
+                on_success=self.on_supabase_loaded,
                 loading_text="Veriler getiriliyor..."
             )
         except Exception as e:
@@ -206,8 +210,11 @@ class FotoModelApp(ctk.CTk):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=150)
 
+        # for show selected templates in new window
+        self.tree_record_map = {}
         for row in data:
-            self.tree.insert("", "end", values=list(row.values()))
+            item_id = self.tree.insert("", "end", values=list(row.values()))
+            self.tree_record_map[item_id] = row
 
     def filter_tree(self, *args):
         query = self.search_var.get().lower()
@@ -223,6 +230,67 @@ class FotoModelApp(ctk.CTk):
 
         self.refresh_tree(filtered)
 
+    def on_tree_double_click(self, event):
+        selected = self.tree.selection()
+        if not selected:
+            return
+
+        item_id = selected[0]
+        record = self.tree_record_map.get(item_id)
+
+        if not record:
+            return
+
+        self.open_selection_detail(record)
+
+    # !! fotoğraflar grid yapısında yan yana gözükmeli altalta gözüküyor !!
+    # selected templates window
+    def open_selection_detail(self, record):
+        window = ctk.CTkToplevel(self)
+        window.title("Seçilen Fotoğraflar")
+        window.geometry("1400x800")
+
+        header = ctk.CTkFrame(window)
+        header.pack(fill="x", padx=20, pady=10)
+
+        ctk.CTkLabel(header, text=f"İsim   : {record['İsim']}").pack(anchor="w")
+        ctk.CTkLabel(header, text=f"Telefon: {record['Telefon']}").pack(anchor="w")
+        ctk.CTkLabel(header, text=f"Tarih  : {record['Tarih']}").pack(anchor="w")
+
+        selected = record["Seçimler"]
+        if isinstance(selected, str):
+            selected = json.loads(selected)
+
+        self.render_selected_photos(window, selected)
+
+    # get images from db - this code below doing same job like show_templates_as_image
+    def render_selected_photos(self, parent, selected_templates):
+        scroll = ctk.CTkScrollableFrame(parent)
+        scroll.pack(fill="both", expand=True, padx=20, pady=10)
+
+        for filename in selected_templates:
+            ctk.CTkLabel(
+                scroll,
+                text=filename,
+                font=("Arial", 16, "bold")
+            ).pack(anchor="w", pady=(10, 5))
+
+            image = self.supabase.download_templates_fromdb(filename, folder="original")
+
+            row = ctk.CTkFrame(scroll)
+            row.pack(fill="x", pady=5)
+
+            self.render_image(row, image)
+
+    def render_image(self, parent, image):
+        img = Image.open(BytesIO(image))
+        img.thumbnail((200, 200))
+
+        ctk_img = ctk.CTkImage(img, size=img.size)
+
+        label = ctk.CTkLabel(parent, image=ctk_img, text="")
+        label.image = ctk_img 
+        label.pack(side="left", padx=5)
 
     # ---------------- Upload Tab ----------------
     def create_upload_tab(self):
@@ -307,7 +375,7 @@ class FotoModelApp(ctk.CTk):
                 if path not in self.pil_cache:
                     img = Image.open(path)
                     img.thumbnail((200, 150))
-                    photo = ImageTk.PhotoImage(img)
+                    photo = ctk.CTkImage(img)
                     self.pil_cache[path] = img
                     self.images.append(photo)
 
@@ -347,18 +415,18 @@ class FotoModelApp(ctk.CTk):
         self.images.clear()
     
     # fetch photo list from db
-    def fetch_templates(self):
+    def fetch_templates(self, folder="thumbs"):
         self._current_cols = None
         threading.Thread(
-            target=self.fetch_templates_worker,
+            target=self.fetch_templates_worker(folder),
             daemon=True
         ).start()
 
-    def fetch_templates_worker(self):
+    def fetch_templates_worker(self, folder):
         self.after(0, self.show_spinner)
 
         try:
-            templates = self.supabase.fetch_templates_fromdb()
+            templates = self.supabase.fetch_templates_fromdb(folder=folder)
             self.after(0, lambda: self.show_templates_as_images(templates))
 
         except Exception as e:
