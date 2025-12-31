@@ -30,6 +30,10 @@ class FotoModelApp(ctk.CTk):
         self.image_paths = []
         self.template_widgets = [] 
 
+        self.selected_template_cache = {}
+        self.grid_cells = []
+        self.resize_job = None
+
         # responsive columns
         self.CARD_WIDTH = 225
         self.CARD_HEIGHT = 175
@@ -250,7 +254,7 @@ class FotoModelApp(ctk.CTk):
             return
 
         column = self.tree.identify_column(event.x)
-        if column != "#1":  # Durum kolonu
+        if column != "#1":
             return
 
         row_id = self.tree.identify_row(event.y)
@@ -268,6 +272,7 @@ class FotoModelApp(ctk.CTk):
         if record:
             self.supabase.update_completed_status(record, new_value == "✔")
 
+    # on double click open new window for show selected images
     def on_tree_double_click(self, event):
         selected = self.tree.selection()
         if not selected:
@@ -308,40 +313,57 @@ class FotoModelApp(ctk.CTk):
             daemon=True
         ).start()
 
+        # for responsive screen size
+        window.bind("<Configure>", self.on_resize)
+
+    def on_resize(self, event):
+        if self.resize_job:
+            self.after_cancel(self.resize_job)
+
+        self.resize_job = self.after(80, self.reflow_grid)
+
     # get images from db - this code below doing same job like show_templates_as_image
     def render_selected_photos(self, parent, selected_templates):
-        scroll = ctk.CTkScrollableFrame(parent)
-        scroll.pack(fill="both", expand=True, padx=20, pady=10)
+        self.scroll = ctk.CTkScrollableFrame(parent)
+        self.scroll.pack(fill="both", expand=True, padx=20, pady=10)
 
-        self.image_cache = {}
+        self.grid_cells.clear()
 
         for filename in selected_templates:
-            ctk.CTkLabel(
-                scroll,
-                text=filename,
-                font=("Arial", 14)
-            ).pack(anchor="w", pady=(10, 5))
+            if filename not in self.selected_template_cache:
+                img = self.supabase.download_templates_fromdb(filename, folder="original")
 
-            # image loading cache
-            if filename in self.image_cache:
-                return self.image_cache[filename]
-            
-            image = self.supabase.download_templates_fromdb(filename, folder="original")
+                img = Image.open(BytesIO(img))
+                img.thumbnail((300, 300))
 
-            row = ctk.CTkFrame(scroll)
-            row.pack(fill="x", pady=5)
+                ctk_img = ctk.CTkImage(img, size=img.size)
+                self.selected_template_cache[filename] = ctk_img
 
-            self.render_image(row, image)
+            cell = ctk.CTkFrame(self.scroll)
+            label = ctk.CTkLabel(cell, image=self.selected_template_cache[filename], text="")
+            label.image = self.selected_template_cache[filename]
+            label.pack()
 
-    def render_image(self, parent, image):
-        img = Image.open(BytesIO(image))
-        img.thumbnail((200, 200))
+            self.grid_cells.append(cell)
 
-        ctk_img = ctk.CTkImage(img, size=img.size)
+        self.reflow_grid()
+    
+    def reflow_grid(self):
+        if not self.grid_cells:
+            return
 
-        label = ctk.CTkLabel(parent, image=ctk_img, text="")
-        label.image = ctk_img 
-        label.pack(side="left", padx=5)
+        container_width = self.scroll.winfo_width()
+        if container_width <= 1:
+            return
+
+        photo_size = 320
+        max_columns = max(1, container_width // photo_size)
+
+        for index, cell in enumerate(self.grid_cells):
+            r = index // max_columns
+            c = index % max_columns
+
+            cell.grid(row=r, column=c, padx=10, pady=10, sticky="n")
 
     # ---------------- Upload Tab ----------------
     def create_upload_tab(self):
