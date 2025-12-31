@@ -77,10 +77,12 @@ class FotoModelApp(ctk.CTk):
         self.tabs.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.tabs.add("Seçimler")
+        self.tabs.add("Link Oluştur")
         self.tabs.add("Şablon Yükleme")
         self.tabs.add("Log")
 
-        self.create_supabase_tab()
+        self.create_selection_tab()
+        self.create_link_tab()
         self.create_upload_tab()
 
     # -------------- Spinner --------------
@@ -143,7 +145,7 @@ class FotoModelApp(ctk.CTk):
         threading.Thread(target=worker, daemon=True).start()
 
     # ---------------- Selection Tab ----------------
-    def create_supabase_tab(self):
+    def create_selection_tab(self):
         tab = self.tabs.tab("Seçimler")
 
         search_frame = ctk.CTkFrame(tab)
@@ -487,6 +489,76 @@ class FotoModelApp(ctk.CTk):
             widget.destroy()
         self.images.clear()
     
+    # link creating tab
+    def create_link_tab(self):
+        tab = self.tabs.tab("Link Oluştur")
+
+        container = ctk.CTkFrame(tab, fg_color="transparent")
+        container.pack(expand=True)
+
+        self.link_btn = ctk.CTkButton(
+            container,
+            text="🔗 Link Oluştur",
+            command=self.create_link,
+            width=200,
+            height=40
+        )
+        self.link_btn.pack(pady=(0, 20))
+
+        result_frame = ctk.CTkFrame(container)
+        result_frame.pack()
+
+        self.link_var = tk.StringVar(value="")
+
+        self.link_label = ctk.CTkLabel(
+            result_frame,
+            textvariable=self.link_var,
+            wraplength=420,
+            text_color="#9ca3af"
+        )
+        self.link_label.pack(side="left", padx=(10, 5), pady=10)
+
+        self.copy_btn = ctk.CTkButton(
+            result_frame,
+            text="📋",
+            width=40,
+            command=self.copy_link
+        )
+        self.copy_btn.pack(side="left", padx=(5, 10))
+
+    def create_link(self):
+        self.show_spinner()
+        self.link_var.set("Link oluşturuluyor...")
+
+        threading.Thread(
+            target=self.create_link_worker,
+            daemon=True
+        ).start()
+
+    def create_link_worker(self):
+        try:
+            link = self.supabase.get_link()
+            self.after(0, lambda: self.link_var.set(link))
+
+        except Exception as e:
+            self.after(0, lambda: self.link_var.set(f"HATA: {e}"))
+
+        finally:
+            self.after(0, self.hide_spinner)
+
+    def copy_link(self):
+        link = self.link_var.get()
+        if not link:
+            return
+
+        self.clipboard_clear()
+        self.clipboard_append(link)
+        self.update()
+
+        self.link_var.set("✅ Kopyalandı")
+        self.after(1500, lambda: self.link_var.set(link))
+
+
     # fetch photo list from db
     def fetch_templates(self, folder="thumbs"):
         self._current_cols = None

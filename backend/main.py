@@ -9,11 +9,27 @@ from database import supabaseClient
 app = FastAPI(docs_url="/docs")
 templates = Jinja2Templates(directory="templates")
 
+# templateleri veri tabanındaki fotoların isimlerinden al
 PHOTO_TEMPLATES = ["4k_1.jpg", "4k_2.jpg", "4k_3.jpg", "4k_4.jpg", "4k_5.jpg", "4k_6.jpg"]
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 supabase = supabaseClient()
+
+# get method for desktop apps use
+@app.get("/create-link")
+def create_link():
+    link_id = str(uuid.uuid4())
+
+    res = supabase.table("form_links").insert({
+        "id": link_id,
+        "is_used": False
+    }).execute()
+
+    if not res.data:
+        raise Exception("Insert failed")
+    
+    return {"link_id":{link_id}}
 
 @app.post("/create-link")
 def create_link():
@@ -26,9 +42,9 @@ def create_link():
 
     if not res.data:
         raise Exception("Insert failed")
-
+    
     return {
-        "url": f"https://YOUR_DOMAIN/form/{link_id}"
+        "url": f"http://127.0.0.1:8000/form/{link_id}"
     }
 
 @app.get("/form/{link_id}", response_class=HTMLResponse)
@@ -46,6 +62,7 @@ def show_form(request: Request, link_id: str):
         "form.html",
         {
             "request": request,
+            # selected images should pass in "templates"
             "templates": PHOTO_TEMPLATES,
             "link_id": link_id
         }
