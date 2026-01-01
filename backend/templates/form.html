@@ -22,25 +22,26 @@
                 </div>
 
                 <h2>Şablonlar</h2>
-                {% for t in templates %}
-                <label class="card required">
-                    <input class="card__input" type="checkbox" name="selected_templates" value="{{ t }}">
-                    <div class="card__body">
-                        <div class="card__body-cover">
-                            <div class="image-wrapper">
-                                <img class="card__body-cover-img" src="/static/{{ t }}"/>
-                                <span class="card__body-cover-checkbox">
-                                    <svg class="card__body-cover-checkbox--svg" viewBox="0 0 12 10">
-                                        <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
-                                    </svg>
-                                </span>   
+                <div class="templates-grid">
+                    {% for t in templates %}
+                        <label class="card required">
+                            <input class="card__input" type="checkbox" name="selected_templates" value="{{ t }}">
+                            <div class="card__body">
+                                <div class="card__body-cover">
+                                    <div class="image-wrapper">
+                                        <img loading="lazy" decoding="async" class="card__body-cover-img" src="{{ t }}"/>
+                                        <span class="card__body-cover-checkbox">
+                                            <svg class="card__body-cover-checkbox--svg" viewBox="0 0 12 10">
+                                                <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+                                            </svg>
+                                        </span>   
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </label><br>
-                {% endfor %}
-
-                <br>
+                        </label>
+                    {% endfor %}
+                </div>
+                
                 <script>
                     function checkForm()
                     {
