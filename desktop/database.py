@@ -89,6 +89,31 @@ class SupabaseDB(object):
 
         return response
 
+    def upload_template_todb(self, path:str):
+        filename = os.path.basename(path)
+
+        # original
+        original_buf = self.phop.resize_original_image(path)
+        self.supabase.storage.from_("foto_model").upload(
+            f"templates/original/{filename}",
+            original_buf,
+            {
+                "content-type": "image/jpeg"
+            }
+        )
+
+        # thumbnail
+        thumb_buf = self.phop.resize_thumb_image(path)
+        self.supabase.storage.from_("foto_model").upload(
+            f"templates/thumbs/{filename}",
+            thumb_buf,
+            {
+                "content-type": "image/jpeg"
+            }
+        )
+
+        print("UPLOAD RESPONSE: Uploaded!")
+
     # async veya daha hızlı yükleme metodları dene
     def upload_templates_todb(self, paths):
         try:
@@ -121,7 +146,10 @@ class SupabaseDB(object):
             print("UPLOAD ERROR: ", e)
 
     def delete_template_fromdb(self, filename):
-        return self.supabase.storage.from_("foto_model").remove([
-            f"templates/original/{filename}",
-            f"templates/thumbs/{filename}"
-        ])
+        try: 
+            return self.supabase.storage.from_("foto_model").remove([
+                f"templates/original/{filename}",
+                f"templates/thumbs/{filename}"
+            ])
+        except Exception as e:
+            print("DELETION ERROR: ", e)

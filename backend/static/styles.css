@@ -1,43 +1,120 @@
 body {
     margin: 0;
-    height: 100%;
-    justify-content: center;
-    background: #EBECF0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #1e1f26, #0f1117);
     display: flex;
+    justify-content: center;
     font-family: 'Muli', sans-serif;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    font-family: 'Montserrat', sans-serif;
     letter-spacing: -0.2px;
+}
+
+.header 
+{
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1000;
+}
+
+.header img 
+{
+    height: 120px;
+    width: auto;
+    object-fit: contain;
+    opacity: 0.95;
+}
+
+h1 
+{
+    font-size: clamp(26px, 4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.6px;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+h2 
+{
+    font-size: clamp(16px, 2.5vw, 20px);
+    font-weight: 500;
+    color: #b5b8c5;
+    margin-top: 20px;
+    margin-bottom: 24px;
+    text-align: center;
 }
 
 .page
 {
     display: flex;
     flex-direction: column;
-    align-items: center;   /* tüm içerik ortalı */
+    align-items: center;
+    justify-content: center;
     margin-top: 20px;
 }
 
 .form
 {
+    width: 100%;
+    max-width: 1200px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+    margin-bottom: 32px;
+    z-index: 10;
 }
 
 .form input,
-.form button {
+.form button 
+{
     width: 300px;
     text-align: center;
 }
 
+.field,
+.button
+{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.templates-grid 
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 10px;
+    justify-content: center;
+    z-index: 1;
+}
+
+@media (max-width: 1024px)
+{
+    .templates-grid
+    {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) 
+{
+    .templates-grid
+    {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+
 .card
 {
+    width: 100%;
+    max-width: 260px;
+    display: block;
     --background-checkbox: #f3f02b;
     --card-shadow: #f3f02b;
-    --card-height: 600px;
-    --card-width: 800px;
     --card-radius: 20px;
     --header-height: 0px;
     --blend-mode: overlay;
@@ -50,13 +127,14 @@ body {
 
 .card__body
 {
-    display: inline-block;
-    width: 800px;
+    width: 100%;
+    max-width: 100%;
+    background: #16181f;
     border-radius: var(--card-radius);
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    box-shadow: var(--shadow, 0 4px 4px 0 rgba(0, 0, 0, 0.02));
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
     -webkit-transition: box-shadow var(--transition), -webkit-transform var(--transition);
     transition: box-shadow var(--transition), -webkit-transform var(--transition);
     transition: transform var(--transition), box-shadow var(--transition);
@@ -65,9 +143,30 @@ body {
     transform: scale(var(--scale, 1)) translateZ(0);
 }
 
+.card__body:hover 
+{
+    box-shadow: 0 0 0 1px rgba(243,240,43,0.3),
+                0 12px 40px rgba(0,0,0,0.6);
+}
+
 .card__body:active
 {
     --scale: 0.96;
+}
+
+.card__body-cover:after
+{
+    content: "";
+    left: 0;
+    top: 0;
+    height: auto;
+    border-radius: var(--c-border);
+    background: -webkit-gradient(linear, left top, right bottom, from(var(--background-image)));
+    background: linear-gradient(to bottom right, var(--background-image));
+    mix-blend-mode: var(--blend-mode);
+    opacity: var(--opacity-bg, 1);
+    -webkit-transition: opacity var(--transition) linear;
+    transition: opacity var(--transition) linear;
 }
 
 .card__body-cover
@@ -81,38 +180,23 @@ body {
     justify-content: center;
 }
 
-.card__body-cover:after
-{
-    content: "";
-    position: relative;
-    display: grid;
-    left: 0;
-    top: 0;
-    width: 800px;
-    height: auto;
-    border-radius: var(--c-border);
-    background: -webkit-gradient(linear, left top, right bottom, from(var(--background-image)));
-    background: linear-gradient(to bottom right, var(--background-image));
-    mix-blend-mode: var(--blend-mode);
-    opacity: var(--opacity-bg, 1);
-    -webkit-transition: opacity var(--transition) linear;
-    transition: opacity var(--transition) linear;
-}
-
 .image-wrapper
 {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    border-radius: 20px;
+    display: block;
+    background: #111318;
 }
 
 .image-wrapper img 
 {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     display: block;
-    max-width: 800px;
-    max-height: 600px;
-    object-fit: contain;
 }
 
 .card__body-cover-image
@@ -123,7 +207,6 @@ body {
     max-height: 100%;
     opacity: 0.8;
     display: block;
-    object-fit: contain;
     background-color: #ffff;
     border-radius: var(--c-border);
     box-shadow:  16px 16px 65px #a8a8a8,-16px -16px 65px #ffffff;
@@ -189,9 +272,9 @@ body {
     position: absolute;
     right: 10px;
     top: 10px;
-    z-index: 1;
-    width: 28px;
-    height: 28px;
+    z-index: 2;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     opacity: var(--check-opacity, 0);
     transition: transform var(--transition), opacity calc(var(--transition) * 1.2) linear, -webkit-transform var(--transition) ease;
@@ -201,11 +284,11 @@ body {
 
 .card__body-cover-checkbox--svg 
 {
-    width: 15px;
-    height: 11px;
+    width: 12px;
+    height: 9px;
+    margin: 6px 0 0 4px;
     display: flex;
     fill: none;
-    margin: 7px 0 0 5px;
     stroke: var(--stroke-color, #fff);
     stroke-width: 2;
     stroke-linecap: round;
@@ -214,4 +297,42 @@ body {
     stroke-dashoffset: var(--stroke-dashoffset, 16px);
     -webkit-transition: stroke-dashoffset 0.4s ease var(--transition);
     transition: stroke-dashoffset 0.4s ease var(--transition);
+}
+
+.pagination 
+{
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin: 40px 0 20px;
+}
+
+.pagination button 
+{
+    background: #1e1f26;
+    color: #fff;
+    border: 1px solid #333;
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.pagination button:hover:not(:disabled) 
+{
+    background: #f3f02b;
+    color: #000;
+}
+
+.pagination button:disabled 
+{
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+#submitBtn
+{
+    display: none;
+    margin-top: 30px;
 }

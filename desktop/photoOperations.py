@@ -1,4 +1,8 @@
-# 6. formda bu fotoları göster veri tabanından
+# 1. parallel upload ve parallel delete
+# 2. şablon getirmede lazy loading
+# 3. yükleme işleminde file dialoga tekrar gidilince ekran yenilemesini yap
+# 4. müşteri seçimlerini silme işlemi ekle
+# 5. uygulalmanın patlaması halinde nasıl bir yol izlenecek?
 # 7. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
 # 8. bütün kodu refactor. okuma, anlama ve bakımı kolaylaştır
 
@@ -24,7 +28,11 @@ class PhotoOperations(object):
         img.save(buf, format="JPEG", quality=100, optimize=True)
         return buf.getvalue()
 
-    def resize_thumb_image(self, path, width, height):
+    def resize_thumb_image(self, path):
+        w, h = img.size
+        width = int(w*0.6)
+        height = int(h*0.6)
+
         img = Image.open(path)
         img = self.crop_center_square(img, width=width, height=height)
         img = self.ensure_rgb(img=img)

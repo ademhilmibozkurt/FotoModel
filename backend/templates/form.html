@@ -6,25 +6,31 @@
         <link rel="stylesheet" href="/static/styles.css"/>
     </head>
     <body>
+        <header class="header">
+            <img src="/static/logo.jpg" alt="FotoModelLogo">
+        </header>
         <div class="page">
-            <form method="post" onsubmit="return checkForm()" class="form">
-                <h2>FotoModel Şablon Seçimi</h2><br>
+            <form id="form-section" method="post" onsubmit="return checkForm()" class="form">
+                <section id="step-1">                
+                    <h1>FotoModel Şablon Seçimi</h1>
+                    <div class="field">
+                        <input id="fullName" name="full_name" type="text" class="input" placeholder=" ">
+                        <span class="span"></span>
+                        <label class="label">Ad ve Soyad</label>
+                    </div>
+                    <div class="field">
+                        <input id="phoneNumber" name="phone_number" type="text" class="input" placeholder=" ">
+                        <span class="span"></span>
+                        <label class="label">Telefon</label>
+                    </div>
 
-                <div class="field">
-                    <input name="full_name" type="text" class="input" required>
-                    <span class="span"></span>
-                    <label class="label">Ad ve Soyad</label><br>
-                </div>
-                <div class="field">
-                    <input name="phone_number" type="text" class="input" required>
-                    <span class="span"></span>
-                    <label class="label">Telefon</label><br>
-                </div>
+                    <h2>Şablonlar</h2>
+                </section>
 
-                <h2>Şablonlar</h2>
+                <section id="step-2" hidden></section>
                 <div class="templates-grid">
                     {% for t in templates %}
-                        <label class="card required">
+                        <label class="card" required>
                             <input class="card__input" type="checkbox" name="selected_templates" value="{{ t }}">
                             <div class="card__body">
                                 <div class="card__body-cover">
@@ -41,25 +47,130 @@
                         </label>
                     {% endfor %}
                 </div>
-                
-                <script>
-                    function checkForm()
-                    {
-                        const checked = document.querySelectorAll(
-                            '.card input[type="checkbox"]:checked'
-                        )
 
-                        if (checked.length === 0) 
-                        {
-                            alert("En az bir fotoğraf seçmelisiniz!")
-                            return false
-                        }
+                <div class="pagination" id="pagination">
+                    <button type="button" id="prevBtn">← Önceki</button>
+                    <button type="button" id="nextBtn">Sonraki →</button>
+                </div>
 
-                        return true
-                    }
-                </script>
-                <button class="button">Gönder</button>
+                <button class="button" id="submitBtn">Gönder</button>
             </form>
         </div>
+
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () 
+            {
+                const ITEMS_PER_PAGE = 14;
+
+                const fullNameInput = document.getElementById('fullName');
+                const phoneInput = document.getElementById('phoneNumber');  
+                const step1 = document.getElementById('step-1');
+                const step2 = document.getElementById('step-2');
+                const cards = Array.from(document.querySelectorAll('.templates-grid .card'));
+                const pagination = document.getElementById('pagination');
+                const submitBtn = document.getElementById('submitBtn');
+
+                let currentPage = 1;
+                const totalPages = Math.ceil(cards.length / ITEMS_PER_PAGE);
+
+                function showPage(page)
+                {
+                    currentPage = page;
+
+                    const start = (page - 1) * ITEMS_PER_PAGE;
+                    const end = start + ITEMS_PER_PAGE;
+
+                    cards.forEach((card, index) => {
+                        card.style.display =
+                            (index >= start && index < end) ? 'block' : 'none';
+                    });
+
+                    if (page === 1)
+                    {
+                        step1.hidden = false;
+                        step2.hidden = true;
+                    }
+                    else if (page === totalPages)
+                    {
+                        step1.hidden = true;
+                        step2.hidden = false;
+                    }
+                    else
+                    {
+                        step1.hidden = true;
+                        step2.hidden = true;
+                    }
+
+                    updateButtons();
+                    updateSubmitButton();
+                }
+
+                function updateSubmitButton()
+                {
+                    if (currentPage === totalPages)
+                    {
+                        submitBtn.style.display = 'block';
+                    } else
+                    {
+                        submitBtn.style.display = 'none';
+                    }
+                }
+
+                function updateButtons()
+                {
+                    prevBtn.disabled = currentPage === 1;
+                    nextBtn.disabled = currentPage === totalPages;
+                }
+
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+
+                prevBtn.onclick = () =>
+                {
+                    if (currentPage > 1)
+                    {
+                        showPage(currentPage - 1);
+                    }
+                };
+
+                nextBtn.onclick = () =>
+                {
+                    if (currentPage === 1)
+                    {
+                        if (!fullNameInput.value.trim() || !phoneInput.value.trim())
+                        {
+                            alert("Ad Soyad ve Telefon alanlarını doldurmalısınız!");
+                            return;
+                        }
+                    }
+
+                    if (currentPage < totalPages)
+                    {
+                        showPage(currentPage + 1);
+                    }
+                };
+                
+                showPage(1);
+            });
+        </script>
+
+        <script>
+            function checkForm()
+            {
+                const checked = document.querySelectorAll(
+                    '.card input[type="checkbox"]:checked'
+                )
+
+                if (checked.length === 0) 
+                {
+                    alert("En az bir fotoğraf seçmelisiniz!")
+                    return false
+                }
+
+                return true
+            }
+        </script>
+
     </body>
 </html>

@@ -67,8 +67,6 @@ def show_form(request: Request, link_id: str):
         for filename in filenames
     ]
 
-    print(photo_templates)
-
     return templates.TemplateResponse(
         "form.html",
         {

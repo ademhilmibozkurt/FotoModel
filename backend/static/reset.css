@@ -1,44 +1,64 @@
-/* modern-css-reset */
-
-/* Box sizing rules */
-*, *::before, *::after 
-{
+/* Box sizing */
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
-/* Remove default margin */
-* {
+/* Remove default margins (SADECE body) */
+body {
     margin: 0;
 }
 
-/* Allow percentage-based heights */
-html, body 
-{
-    height: 100%;
+/* Base html setup */
+html {
+    font-size: 100%;
 }
 
-/* Improve text rendering */
-body 
-{
+/* Body defaults (layout YOK) */
+body {
+    min-height: 100vh;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
-/* Media defaults */
-img, picture, video, canvas, svg 
-{
-    display: block;
+/* Media elements */
+img,
+picture,
+video,
+canvas,
+svg {
     max-width: 100%;
+    height: auto;
+    vertical-align: middle;
 }
 
-/* Form elements */
-input, button, textarea, select 
-{
+/* Forms */
+input,
+button,
+textarea,
+select {
     font: inherit;
+    color: inherit;
 }
 
-/* Avoid text overflows */
-p, h1, h2, h3, h4, h5, h6
-{
+/* Headings & text */
+h1, h2, h3, h4, h5, h6,
+p {
+    margin: 0;
     overflow-wrap: break-word;
+}
+
+/* Lists (optional) */
+ul, ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Links */
+a {
+    color: inherit;
+    text-decoration: none;
 }

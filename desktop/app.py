@@ -6,9 +6,10 @@ from io import BytesIO
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import ttk, filedialog, messagebox
-from PIL import Image
+from PIL import Image, ImageOps
 from database import SupabaseDB
 from photoOperations import PhotoOperations
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -116,18 +117,6 @@ class FotoModelApp(ctk.CTk):
     def hide_spinner(self):
         self.spinner.stop()
         self.spinner_overlay.lower()
-
-    
-    def start_spinner(self):
-        self.spinner.start()
-        self.spinner_label.configure(text="İşlem yapılıyor...")
-        self.spinner.pack(pady=10)
-        self.spinner_label.pack()
-
-    def stop_spinner(self):
-        self.spinner.stop()
-        self.spinner.pack_forget()
-        self.spinner_label.pack_forget()
 
     def run_with_spinner(self, task, on_success=None, loading_text="Yükleniyor..."):
         def worker():
@@ -378,7 +367,7 @@ class FotoModelApp(ctk.CTk):
         ctk.CTkButton(
             top_bar,
             text="📂 Görselleri Yükle",
-            command=self.upload_images
+            command=self.upload_images_tab
         ).pack(side="left", padx=(0,10))
 
         ctk.CTkButton(
@@ -414,8 +403,12 @@ class FotoModelApp(ctk.CTk):
         ctk.CTkButton(
             bottom_bar,
             text="Onayla",
-            command=self.upload_templates
-            ).pack(side="left")
+            # command=self.upload_templates
+            command=lambda: threading.Thread(
+                target=self.upload_templates_parallel,
+                args=(self.image_paths,),
+                daemon=True
+            ).start()).pack(side="left")
 
         ctk.CTkButton(
             bottom_bar,
@@ -426,52 +419,52 @@ class FotoModelApp(ctk.CTk):
         ).pack(side="right")
 
     # upload template photos to supabase storage
-    def upload_images(self):
-        paths = filedialog.askopenfilenames(
-            title="Şablon Seç",
-            filetypes=[("Images", "*.jpg *.png *.webp *.avif")]
-        )
-        
-        self.image_paths.clear()
-        self.image_paths.extend(paths)
-
+    def upload_images_tab(self):
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
         self.images.clear()
+        self.image_paths.clear()
         self.template_cards = []
         self.templates_ready = False
-
         self.pil_cache = {}
 
+        paths = filedialog.askopenfilenames(
+            title="Şablon Seç",
+            filetypes=[("Images", "*.jpg *.png *.webp *.avif")]
+        )
+        self.image_paths.extend(paths)
+
+        self.show_spinner()
         try:
             for path in paths:
                 # caching - refactor code below
                 if path not in self.pil_cache:
                     img = Image.open(path)
-                    img.thumbnail((200, 150))
-                    photo = ctk.CTkImage(img)
+                    img = ImageOps.contain(img, (200, 150), Image.LANCZOS)
+                    img = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
                     self.pil_cache[path] = img
-                    self.images.append(photo)
 
                 frame = tk.Frame(self.preview_frame, bg="#111827", width=self.CARD_WIDTH, height=self.CARD_HEIGHT)
                 # content on the frame fixed
                 frame.grid_propagate(False)
 
-                tk.Label(frame, image=photo, bg="#111827").pack(pady=(6,4))
-                tk.Label(
+                ctk.CTkLabel(frame, image=img, text="").pack(pady=(6,4))
+                ctk.CTkLabel(
                     frame,
                     text=os.path.basename(path),
-                    fg="#9ca3af",
-                    bg="#111827",
+                    font=("Segoe UI", 11),
+                    bg_color="#111827",
                     wraplength=self.CARD_WIDTH - 10,
-                    justify="center"
-                ).pack(padx=5, pady=(0, 6))
+                    justify="center",
+                    anchor="center"
+                ).pack(padx=5, pady=(2, 6))
         
                 self.template_cards.append(frame)
 
             self.templates_ready = True
             self.relayout_gallery()
+            self.hide_spinner()
             
             self.log(f"Yüklendi: {path}")
 
@@ -488,7 +481,42 @@ class FotoModelApp(ctk.CTk):
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
         self.images.clear()
-    
+
+    def upload_templates_parallel(self, paths: list):
+        if not paths:
+            return
+
+        self.show_spinner()
+
+        uploaded = []
+        errors = []
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {
+                executor.submit(self.supabase.upload_template_todb, path): path
+                for path in paths
+            }
+
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    uploaded.append(result)
+                except Exception as e:
+                    errors.append(str(e))
+
+        self.hide_spinner()
+
+        if errors:
+            messagebox.showerror(
+                "Upload Hataları",
+                "\n".join(errors[:5])
+            )
+
+        # clean the screen for futher uploads
+        for widget in self.preview_frame.winfo_children():
+            widget.destroy()
+        self.images.clear()
+
     # link creating tab
     def create_link_tab(self):
         tab = self.tabs.tab("Link Oluştur")
@@ -503,7 +531,7 @@ class FotoModelApp(ctk.CTk):
             width=200,
             height=40
         )
-        self.link_btn.pack(pady=(0, 20))
+        self.link_btn.pack(pady=(0, 15))
 
         result_frame = ctk.CTkFrame(container)
         result_frame.pack()
@@ -620,6 +648,9 @@ class FotoModelApp(ctk.CTk):
             )
             frame.grid_propagate(False)
 
+            frame.filename = filename
+            frame.selected = False
+            
             lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
             lbl.image = ctk_img
             lbl.pack(padx=10, pady=(10, 5))
@@ -633,8 +664,7 @@ class FotoModelApp(ctk.CTk):
         self.relayout_gallery()
 
     def toggle_select(self, frame):
-        selected = getattr(frame, "selected", False)
-        frame.selected = not selected
+        frame.selected = not frame.selected
         frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
 
     def relayout_gallery(self):
@@ -668,14 +698,14 @@ class FotoModelApp(ctk.CTk):
         if hasattr(self, "_resize_job"):
             self.after_cancel(self._resize_job)
 
-        self._resize_job = self.after(120, self.relayout_gallery)
+        self._resize_job = self.after(80, self.relayout_gallery)
 
     # delete selected templates from supabase storage
     def delete_selected_templates(self):
         selected = [
-            filename
-            for filename, var in self.template_widgets
-            if var.get()
+            frame.filename
+            for frame in self.template_cards
+                if getattr(frame, "selected", False)
         ]
 
         if not selected:
