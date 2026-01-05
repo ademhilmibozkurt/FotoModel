@@ -25,25 +25,45 @@ class FotoModelApp(ctk.CTk):
         self.create_spinner()
 
         self.supabase = SupabaseDB()
-        self.phop = PhotoOperations()
+        self.phop     = PhotoOperations()
         self.all_data = []
-        self.images = []
+        self.images   = []
         self.image_paths = []
-        self.template_widgets = [] 
+        self.template_widgets = []
 
         self.selected_template_cache = {}
         self.grid_cells = []
         self.resize_job = None
 
         # responsive columns
-        self.CARD_WIDTH = 225
+        self.CARD_WIDTH  = 225
         self.CARD_HEIGHT = 175
-        self.CARD_PAD   = 25
-        self.MIN_COLS   = 2
+        self.CARD_PAD    = 25
+        self.MIN_COLS    = 2
         self.templates_ready = False
 
         # resize renderer binding  
         self.bind("<Configure>", self.on_window_resize)
+
+        # for lazy loading
+        self.gallery_mode = "None"
+        self._current_cols   = None
+        self.template_cards = []
+        self.pil_cache = {}
+        self.ctk_cache = {}
+        self.visible_range = (0, 0)
+        self.MAX_VISIBLE = 40
+        self.BUFFER = 12
+
+        # for calling render_gallery() multiple times
+    def on_window_resize(self, event):
+        if not self.templates_ready or event.widget != self:
+            return
+
+        if hasattr(self, "_resize_job"):
+            self.after_cancel(self._resize_job)
+
+        self._resize_job = self.after(80, self.relayout_gallery)
 
     # ---------------- UI ----------------
     def create_ui(self):
@@ -367,7 +387,7 @@ class FotoModelApp(ctk.CTk):
         ctk.CTkButton(
             top_bar,
             text="📂 Görselleri Yükle",
-            command=self.upload_images_tab
+            command=self.upload_images_wspinner
         ).pack(side="left", padx=(0,10))
 
         ctk.CTkButton(
@@ -385,7 +405,7 @@ class FotoModelApp(ctk.CTk):
 
         scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=scrollbar.set)
-        self.preview_frame = tk.Frame(self.canvas, bg="#1f2937")
+        self.preview_frame = ctk.CTkFrame(self.canvas)
         self.canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
 
         self.preview_frame.bind("<Configure>",lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
@@ -420,12 +440,14 @@ class FotoModelApp(ctk.CTk):
 
     # upload template photos to supabase storage
     def upload_images_tab(self):
+        self.gallery_mode = "upload"
+
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
         self.images.clear()
         self.image_paths.clear()
-        self.template_cards = []
+        self.template_cards.clear()
         self.templates_ready = False
         self.pil_cache = {}
 
@@ -435,21 +457,23 @@ class FotoModelApp(ctk.CTk):
         )
         self.image_paths.extend(paths)
 
-        self.show_spinner()
         try:
             for path in paths:
                 # caching - refactor code below
                 if path not in self.pil_cache:
                     img = Image.open(path)
                     img = ImageOps.contain(img, (200, 150), Image.LANCZOS)
-                    img = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
-                    self.pil_cache[path] = img
-
-                frame = tk.Frame(self.preview_frame, bg="#111827", width=self.CARD_WIDTH, height=self.CARD_HEIGHT)
+                    self.pil_cache[path] = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
+                    
+                ctk_img = self.pil_cache[path]
+                frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
                 # content on the frame fixed
                 frame.grid_propagate(False)
 
-                ctk.CTkLabel(frame, image=img, text="").pack(pady=(6,4))
+                lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
+                lbl.image = ctk_img
+                lbl.pack(pady=(6,4))
+
                 ctk.CTkLabel(
                     frame,
                     text=os.path.basename(path),
@@ -463,17 +487,22 @@ class FotoModelApp(ctk.CTk):
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.relayout_gallery()
-            self.hide_spinner()
-            
+            self.after(0, self.relayout_gallery)
+        
             self.log(f"Yüklendi: {path}")
 
         except Exception as e:
             self.log(f"HATA: {e}")
 
+    def upload_images_wspinner(self):
+        self.run_with_spinner(
+            task=lambda:self.upload_images_tab(),
+            loading_text="Yükleniyor..."
+        )
+
     def upload_templates(self):
         self.run_with_spinner(
-            task=lambda:self.supabase.upload_templates_todb(self.image_paths),
+            task=lambda:self.supabase.upload_templates_parallel(self.image_paths),
             loading_text="Veri tabanına yükleniyor..."
         )
 
@@ -517,7 +546,264 @@ class FotoModelApp(ctk.CTk):
             widget.destroy()
         self.images.clear()
 
-    # link creating tab
+
+    # ---- template fetching ------- fetch photo list from db
+    def fetch_templates(self, folder="thumbs"):
+        self.show_spinner()
+
+        threading.Thread(
+            target=self.fetch_templates_worker,
+            args=(folder,),
+            daemon=True
+        ).start()
+
+    def fetch_templates_worker(self, folder):
+        try:
+            templates = self.supabase.fetch_templates_fromdb(folder)
+            filenames = [t["names"] for t in templates]
+
+            self.after(0, lambda: self.show_templates(filenames))
+        except Exception as e:
+            self.after(0, lambda:messagebox.showerror("HATA: ", str(e)))
+
+        finally:
+            self.after(0, self.hide_spinner)
+        
+        """try:
+            templates = self.supabase.fetch_templates_fromdb(folder=folder)
+            
+            cards = []
+            pil_cache = {}
+            ctk_cache = {}
+
+            for t in templates:
+                filename = t["name"]
+
+                res = self.supabase.download_templates_fromdb(filename)
+                img = Image.open(BytesIO(res))
+                # img = self.phop.crop_center_square(img, 200, 150)
+
+                pil_cache[filename] = img
+                ctk_cache[filename] = ctk.CTkImage(
+                    light_image=img,
+                    dark_image=img,
+                    size=(200, 150)
+                )
+
+                cards.append((filename, ctk_cache[filename]))
+
+            self.after(0, lambda: self.show_templates(cards))
+
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("HATA:", str(e)))
+
+        finally:
+            self.after(0, self.hide_spinner)"""
+
+    # download and show fetched list
+    def show_templates(self, filenames):
+        self.gallery_mode = "fetch"
+
+        for widget in self.preview_frame.winfo_children():
+            widget.destroy()
+
+        self.template_cards.clear()
+        self.templates_ready = False
+
+        for filename in filenames:
+            frame = ctk.CTkFrame(
+                self.preview_frame,
+                width=self.CARD_WIDTH,
+                height=self.CARD_HEIGHT,
+                corner_radius=12
+            )
+            frame.grid_propagate(False)
+
+            frame.filename = filename
+            frame.selected = False
+            frame.loaded   = False
+            
+            lbl = ctk.CTkLabel(frame, text="Yükleniyor...")
+            lbl.pack(expand=True)
+
+            frame.img_label = lbl
+
+            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+            lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+
+            self.template_cards.append(frame)
+
+        self.templates_ready = True
+        self.relayout_gallery()
+        self.update_visible()
+
+        """self.template_cards  = []
+        self.templates_ready = False
+        self._current_cols   = None
+
+        for filename, ctk_img in templates:
+            frame = ctk.CTkFrame(
+                self.preview_frame,
+                width=self.CARD_WIDTH,
+                height=self.CARD_HEIGHT,
+                corner_radius=12
+            )
+            frame.grid_propagate(False)
+
+            frame.filename = filename
+            frame.selected = False
+            
+            lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
+            lbl.image = ctk_img
+            lbl.pack(padx=10, pady=(10, 5))
+
+            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+            lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+
+            self.template_cards.append(frame)
+
+        self.templates_ready = True
+        self.relayout_gallery()"""
+
+    def toggle_select(self, frame):
+        frame.selected = not frame.selected
+        frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
+
+    # calculate visible area
+    def get_visible_indices(self):
+        y1 = self.canvas.canvasy(0)
+        y2 = y1 + self.canvas.winfo_height()
+
+        row_h     = self.CARD_HEIGHT + self.CARD_PAD
+        start_row = max(0, int(y1 // row_h) - 1)
+        end_row   = int(y2 // row_h) +2
+
+        start = start_row * self._current_cols
+        end   = end_row * self._current_cols
+
+        return start, min(end, len(self.template_cards))
+    
+    # loading images with threading
+    def load_image_async(self, frame):
+        def worker():
+            fn = frame.filename
+            if fn in self.ctk_cache:
+                return
+            
+            res = self.supabase.download_templates_fromdb(fn)
+            img = Image.open(BytesIO(res))
+            # img = img.resize((200,150))
+
+            self.pil_cache[fn] = img
+            self.ctk_cache[fn] = ctk.CTkImage(
+                light_image=img,
+                dark_image=img,
+                size=(img.width, img.height)
+            )
+
+            self.after(0, lambda: self.attach_image(frame))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    # attach image to label
+    def attach_image(self, frame):
+        if frame.loaded:
+            return
+
+        img = self.ctk_cache.get(frame.filename)
+        if not img:
+            return
+
+        frame.img_label.destroy()
+
+        lbl       = ctk.CTkLabel(frame, image=img, text="")
+        lbl.image = img
+        lbl.pack(padx=10, pady=(10,5))
+
+        lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+
+        frame.loaded = True
+
+    def update_visible(self):
+        if not self.templates_ready or not self._current_cols:
+            return
+        
+        start, end = self.get_visible_indices()
+        if (start, end) == self.visible_range:
+            return
+
+        self.visible_range = (start, end)
+
+        for i, frame in enumerate(self.template_cards):
+            if start <= i < end:
+                r = i // self._current_cols
+                c = i % self._current_cols
+                frame.grid(row=r, column=c, padx=15, pady=15)
+
+            if self.gallery_mode == "fetch":
+                if not frame.loaded:
+                    self.load_image_async(frame)
+
+            if self.gallery_mode == "upload":
+                for i, frame in enumerate(self.template_cards):
+                    r = i // self._current_cols
+                    c = i % self._current_cols
+                    frame.grid(row=r, column=c, padx=15, pady=15)
+                return
+
+            else:
+                frame.grid_forget()
+    
+
+    def relayout_gallery(self):
+        if not self.templates_ready:
+            return 
+        
+        canvas_width = self.canvas.winfo_width()
+        cols = max(self.MIN_COLS, canvas_width // (self.CARD_WIDTH + self.CARD_PAD))
+        
+        if self._current_cols is not None and self._current_cols == cols:
+            return
+        
+        self._current_cols = cols
+        self.update_visible()
+
+    # delete selected templates from supabase storage
+    def delete_selected_templates(self):
+        selected = [
+            frame.filename
+            for frame in self.template_cards
+                if getattr(frame, "selected", False)
+        ]
+
+        if not selected:
+            messagebox.showinfo("Bilgi", "Silinecek şablon seçilmedi.")
+            return
+
+        threading.Thread(
+            target=self.delete_templates_worker,
+            args=(selected,),
+            daemon=True
+        ).start()
+
+    def delete_templates_worker(self, selected):
+        self.after(0, self.show_spinner)
+
+        try:
+            for filename in selected:
+                self.supabase.delete_template_fromdb(filename)
+
+            # !!! cache mekanizması ekle fotolar çok geç geliyor ve ui donuyor !!!
+            self.after(0, self.fetch_templates)
+            print("DELETE RESPONSE: Deleted!")
+
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
+
+        finally:
+            self.after(0, self.hide_spinner)
+
+    # -------- link creating tab ---------
     def create_link_tab(self):
         tab = self.tabs.tab("Link Oluştur")
 
@@ -585,155 +871,6 @@ class FotoModelApp(ctk.CTk):
 
         self.link_var.set("✅ Kopyalandı")
         self.after(1500, lambda: self.link_var.set(link))
-
-
-    # fetch photo list from db
-    def fetch_templates(self, folder="thumbs"):
-        self._current_cols = None
-        self.show_spinner()
-
-        threading.Thread(
-            target=self.fetch_templates_worker,
-            args=(folder,),
-            daemon=True
-        ).start()
-
-    def fetch_templates_worker(self, folder):
-        try:
-            templates = self.supabase.fetch_templates_fromdb(folder=folder)
-            
-            cards = []
-            pil_cache = {}
-            ctk_cache = {}
-
-            for t in templates:
-                filename = t["name"]
-
-                res = self.supabase.download_templates_fromdb(filename)
-                img = Image.open(BytesIO(res))
-                img = self.phop.crop_center_square(img, 200, 150)
-
-                pil_cache[filename] = img
-                ctk_cache[filename] = ctk.CTkImage(
-                    light_image=img,
-                    dark_image=img,
-                    size=(200, 150)
-                )
-
-                cards.append((filename, ctk_cache[filename]))
-
-            self.after(0, lambda: self.show_templates(cards))
-
-        except Exception as e:
-            self.after(0, lambda: messagebox.showerror("HATA:", str(e)))
-
-        finally:
-            self.after(0, self.hide_spinner)
-
-    # download and show fetched list
-    def show_templates(self, templates):
-        for widget in self.preview_frame.winfo_children():
-            widget.destroy()
-
-        self.template_cards = []
-        self.templates_ready = False
-        self._current_cols = None
-
-        for filename, ctk_img in templates:
-            frame = ctk.CTkFrame(
-                self.preview_frame,
-                width=self.CARD_WIDTH,
-                height=self.CARD_HEIGHT,
-                corner_radius=12
-            )
-            frame.grid_propagate(False)
-
-            frame.filename = filename
-            frame.selected = False
-            
-            lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
-            lbl.image = ctk_img
-            lbl.pack(padx=10, pady=(10, 5))
-
-            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
-            lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
-
-            self.template_cards.append(frame)
-
-        self.templates_ready = True
-        self.relayout_gallery()
-
-    def toggle_select(self, frame):
-        frame.selected = not frame.selected
-        frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
-
-    def relayout_gallery(self):
-        canvas_width = self.canvas.winfo_width()
-        if canvas_width < self.CARD_WIDTH:
-            return
-
-        cols = max(
-            self.MIN_COLS,
-            canvas_width // (self.CARD_WIDTH + self.CARD_PAD)
-        )
-
-        if getattr(self, "_current_cols", None) == cols:
-            return
-
-        self._current_cols = cols
-
-        for i, frame in enumerate(self.template_cards):
-            row = i // cols
-            col = i % cols
-            frame.grid(row=row, column=col, padx=15, pady=15, sticky="n")
-
-    # for calling render_gallery() multiple times
-    def on_window_resize(self, event):
-        if not self.templates_ready:
-            return
-        
-        if event.widget != self:
-            return 
-
-        if hasattr(self, "_resize_job"):
-            self.after_cancel(self._resize_job)
-
-        self._resize_job = self.after(80, self.relayout_gallery)
-
-    # delete selected templates from supabase storage
-    def delete_selected_templates(self):
-        selected = [
-            frame.filename
-            for frame in self.template_cards
-                if getattr(frame, "selected", False)
-        ]
-
-        if not selected:
-            messagebox.showinfo("Bilgi", "Silinecek şablon seçilmedi.")
-            return
-
-        threading.Thread(
-            target=self.delete_templates_worker,
-            args=(selected,),
-            daemon=True
-        ).start()
-
-    def delete_templates_worker(self, selected):
-        self.after(0, self.show_spinner)
-
-        try:
-            for filename in selected:
-                self.supabase.delete_template_fromdb(filename)
-
-            # !!! cache mekanizması ekle fotolar çok geç geliyor ve ui donuyor !!!
-            self.after(0, self.fetch_templates)
-            print("DELETE RESPONSE: Deleted!")
-
-        except Exception as e:
-            self.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
-
-        finally:
-            self.after(0, self.hide_spinner)
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):

@@ -1,10 +1,12 @@
-# 1. parallel upload ve parallel delete
-# 2. şablon getirmede lazy loading
-# 3. yükleme işleminde file dialoga tekrar gidilince ekran yenilemesini yap
-# 4. müşteri seçimlerini silme işlemi ekle
-# 5. uygulalmanın patlaması halinde nasıl bir yol izlenecek?
-# 7. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
-# 8. bütün kodu refactor. okuma, anlama ve bakımı kolaylaştır
+# 1. şablon getirmede lazy loading
+# 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
+# veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
+# 3. parallel upload ve parallel delete
+# 4. yükleme işleminde file dialoga tekrar gidilince ekran yenilemesini yap
+# 5. müşteri seçimlerini silme işlemi ekle
+# 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
+# 7. bütün kodu refactor. okuma, anlama ve bakımı kolaylaştır
+# # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
 
 from PIL import Image
 from io import BytesIO
@@ -13,28 +15,14 @@ class PhotoOperations(object):
     def __init__(self):
         super().__init__()
 
-    # resizing without cropping
-    def resize_original_image(self, path):
+    def resize_image(self, path, wC=0.25, hC=0.25):
         img = Image.open(path)
         
         w, h = img.size
-        width = int(w*0.25)
-        height = int(h*0.25)
+        width = int(w*wC)
+        height = int(h*hC)
 
         img = img.resize((width, height), Image.LANCZOS)
-        img = self.ensure_rgb(img=img)
-
-        buf = BytesIO()
-        img.save(buf, format="JPEG", quality=100, optimize=True)
-        return buf.getvalue()
-
-    def resize_thumb_image(self, path):
-        w, h = img.size
-        width = int(w*0.6)
-        height = int(h*0.6)
-
-        img = Image.open(path)
-        img = self.crop_center_square(img, width=width, height=height)
         img = self.ensure_rgb(img=img)
 
         buf = BytesIO()

@@ -93,7 +93,7 @@ class SupabaseDB(object):
         filename = os.path.basename(path)
 
         # original
-        original_buf = self.phop.resize_original_image(path)
+        original_buf = self.phop.resize_image(path, wC=0.25, hC=0.25)
         self.supabase.storage.from_("foto_model").upload(
             f"templates/original/{filename}",
             original_buf,
@@ -103,7 +103,7 @@ class SupabaseDB(object):
         )
 
         # thumbnail
-        thumb_buf = self.phop.resize_thumb_image(path)
+        thumb_buf = self.phop.resize_image(path, wC=0.1, hC=0.1)
         self.supabase.storage.from_("foto_model").upload(
             f"templates/thumbs/{filename}",
             thumb_buf,
