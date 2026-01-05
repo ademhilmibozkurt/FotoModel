@@ -55,6 +55,10 @@ class FotoModelApp(ctk.CTk):
         self.MAX_VISIBLE = 40
         self.BUFFER = 12
 
+        # limit the number of parallel operations
+        self.UPLOAD_LIMIT = 3
+        self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
+
         # for calling render_gallery() multiple times
     def on_window_resize(self, event):
         if not self.templates_ready or event.widget != self:
@@ -387,7 +391,7 @@ class FotoModelApp(ctk.CTk):
         ctk.CTkButton(
             top_bar,
             text="📂 Görselleri Yükle",
-            command=self.upload_images_wspinner
+            command=self.upload_images_ui_wspinner
         ).pack(side="left", padx=(0,10))
 
         ctk.CTkButton(
@@ -423,10 +427,8 @@ class FotoModelApp(ctk.CTk):
         ctk.CTkButton(
             bottom_bar,
             text="Onayla",
-            # command=self.upload_templates
             command=lambda: threading.Thread(
-                target=self.upload_templates_parallel,
-                args=(self.image_paths,),
+                target=self.upload_templates_todb,
                 daemon=True
             ).start()).pack(side="left")
 
@@ -437,6 +439,18 @@ class FotoModelApp(ctk.CTk):
             hover_color="#7F1D1D",
             command=self.delete_selected_templates
         ).pack(side="right")
+
+    # upload to ui 
+    def upload_images_ui_wspinner(self):
+        self.run_with_spinner(
+            task=lambda:self.upload_images_tab(),
+            loading_text="Yükleniyor..."
+        )
+
+        # clean the screen for futher uploads
+        for widget in self.preview_frame.winfo_children():
+            widget.destroy()
+        self.images.clear()
 
     # upload template photos to supabase storage
     def upload_images_tab(self):
@@ -494,46 +508,22 @@ class FotoModelApp(ctk.CTk):
         except Exception as e:
             self.log(f"HATA: {e}")
 
-    def upload_images_wspinner(self):
-        self.run_with_spinner(
-            task=lambda:self.upload_images_tab(),
-            loading_text="Yükleniyor..."
-        )
+    # upload to db
+    def upload_templates_todb(self):
+        threading.Thread(
+            target=self._upload_worker,
+            daemon=True
+        ).start()
 
-    def upload_templates(self):
-        self.run_with_spinner(
-            task=lambda:self.supabase.upload_templates_parallel(self.image_paths),
-            loading_text="Veri tabanına yükleniyor..."
-        )
-
-        # clean the screen for futher uploads
+        """# clean the screen for futher uploads
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
-        self.images.clear()
+        self.images.clear()"""
 
-    def upload_templates_parallel(self, paths: list):
-        if not paths:
-            return
-
+    def _upload_worker(self):
         self.show_spinner()
-
-        uploaded = []
-        errors = []
-
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = {
-                executor.submit(self.supabase.upload_template_todb, path): path
-                for path in paths
-            }
-
-            for future in as_completed(futures):
-                try:
-                    result = future.result()
-                    uploaded.append(result)
-                except Exception as e:
-                    errors.append(str(e))
-
-        self.hide_spinner()
+        errors = self.upload_templates_parallel(self.image_paths)
+        self.after(0, self.hide_spinner)
 
         if errors:
             messagebox.showerror(
@@ -541,11 +531,39 @@ class FotoModelApp(ctk.CTk):
                 "\n".join(errors[:5])
             )
 
-        # clean the screen for futher uploads
-        for widget in self.preview_frame.winfo_children():
-            widget.destroy()
-        self.images.clear()
+    def upload_templates_parallel(self, paths: list):
+        if not paths:
+            return
+        
+        errors = []
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {
+                executor.submit(self.upload_pair, path): path
+                for path in paths
+            }
 
+            for future in as_completed(futures):
+                err = future.result()
+                if err:
+                    errors.append(err)
+
+        return errors
+
+    def upload_pair(self, path):
+        err = self.upload_file_todb(path, False)
+        if err:
+            return err
+        
+        return self.upload_file_todb(path, True)
+
+    def upload_file_todb(self, path, is_thumb):
+        with self.upload_semaphore:
+            try:
+                self.supabase.upload_template_todb(path, is_thumb)
+            except Exception as e:
+                return str(e)
+            
+        return None
 
     # ---- template fetching ------- fetch photo list from db
     def fetch_templates(self, folder="thumbs"):
@@ -568,37 +586,6 @@ class FotoModelApp(ctk.CTk):
 
         finally:
             self.after(0, self.hide_spinner)
-        
-        """try:
-            templates = self.supabase.fetch_templates_fromdb(folder=folder)
-            
-            cards = []
-            pil_cache = {}
-            ctk_cache = {}
-
-            for t in templates:
-                filename = t["name"]
-
-                res = self.supabase.download_templates_fromdb(filename)
-                img = Image.open(BytesIO(res))
-                # img = self.phop.crop_center_square(img, 200, 150)
-
-                pil_cache[filename] = img
-                ctk_cache[filename] = ctk.CTkImage(
-                    light_image=img,
-                    dark_image=img,
-                    size=(200, 150)
-                )
-
-                cards.append((filename, ctk_cache[filename]))
-
-            self.after(0, lambda: self.show_templates(cards))
-
-        except Exception as e:
-            self.after(0, lambda: messagebox.showerror("HATA:", str(e)))
-
-        finally:
-            self.after(0, self.hide_spinner)"""
 
     # download and show fetched list
     def show_templates(self, filenames):
@@ -636,34 +623,6 @@ class FotoModelApp(ctk.CTk):
         self.templates_ready = True
         self.relayout_gallery()
         self.update_visible()
-
-        """self.template_cards  = []
-        self.templates_ready = False
-        self._current_cols   = None
-
-        for filename, ctk_img in templates:
-            frame = ctk.CTkFrame(
-                self.preview_frame,
-                width=self.CARD_WIDTH,
-                height=self.CARD_HEIGHT,
-                corner_radius=12
-            )
-            frame.grid_propagate(False)
-
-            frame.filename = filename
-            frame.selected = False
-            
-            lbl = ctk.CTkLabel(frame, image=ctk_img, text="")
-            lbl.image = ctk_img
-            lbl.pack(padx=10, pady=(10, 5))
-
-            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
-            lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
-
-            self.template_cards.append(frame)
-
-        self.templates_ready = True
-        self.relayout_gallery()"""
 
     def toggle_select(self, frame):
         frame.selected = not frame.selected
