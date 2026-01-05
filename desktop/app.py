@@ -515,10 +515,10 @@ class FotoModelApp(ctk.CTk):
             daemon=True
         ).start()
 
-        """# clean the screen for futher uploads
+        # clean the screen for futher uploads
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
-        self.images.clear()"""
+        self.images.clear()
 
     def _upload_worker(self):
         self.show_spinner()
@@ -550,20 +550,12 @@ class FotoModelApp(ctk.CTk):
         return errors
 
     def upload_pair(self, path):
-        err = self.upload_file_todb(path, False)
-        if err:
-            return err
-        
-        return self.upload_file_todb(path, True)
-
-    def upload_file_todb(self, path, is_thumb):
-        with self.upload_semaphore:
-            try:
-                self.supabase.upload_template_todb(path, is_thumb)
-            except Exception as e:
-                return str(e)
-            
-        return None
+        try:
+            supabase = SupabaseDB()
+            supabase.upload_template_todb(path, False)
+            supabase.upload_template_todb(path, True)
+        except Exception as e:
+            return str(e)
 
     # ---- template fetching ------- fetch photo list from db
     def fetch_templates(self, folder="thumbs"):
