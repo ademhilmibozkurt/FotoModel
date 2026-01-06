@@ -36,14 +36,16 @@ class FotoModelApp(ctk.CTk):
         self.resize_job = None
 
         # responsive columns
-        self.CARD_WIDTH  = 225
-        self.CARD_HEIGHT = 175
+        self.CARD_WIDTH  = 268
+        self.CARD_HEIGHT = 151
         self.CARD_PAD    = 25
         self.MIN_COLS    = 2
         self.templates_ready = False
 
         # resize renderer binding  
         self.bind("<Configure>", self.on_window_resize)
+        # listen canvas size changes
+        self.preview_frame.bind("<Configure>", lambda e: self.relayout_gallery)
 
         # for lazy loading
         self.gallery_mode = "None"
@@ -349,7 +351,7 @@ class FotoModelApp(ctk.CTk):
                 img = self.supabase.download_templates_fromdb(filename, folder="original")
 
                 img = Image.open(BytesIO(img))
-                img.thumbnail((300, 300))
+                img = ImageOps.contain((384, 216), Image.LANCZOS)
 
                 ctk_img = ctk.CTkImage(img, size=img.size)
                 self.selected_template_cache[filename] = ctk_img
@@ -371,7 +373,7 @@ class FotoModelApp(ctk.CTk):
         if container_width <= 1:
             return
 
-        photo_size = 320
+        photo_size = 268
         max_columns = max(1, container_width // photo_size)
 
         for index, cell in enumerate(self.grid_cells):
@@ -476,7 +478,7 @@ class FotoModelApp(ctk.CTk):
                 # caching - refactor code below
                 if path not in self.pil_cache:
                     img = Image.open(path)
-                    img = ImageOps.contain(img, (200, 150), Image.LANCZOS)
+                    img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
                     self.pil_cache[path] = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
                     
                 ctk_img = self.pil_cache[path]
@@ -570,7 +572,7 @@ class FotoModelApp(ctk.CTk):
     def fetch_templates_worker(self, folder):
         try:
             templates = self.supabase.fetch_templates_fromdb(folder)
-            filenames = [t["names"] for t in templates]
+            filenames = [t["name"] for t in templates]
 
             self.after(0, lambda: self.show_templates(filenames))
         except Exception as e:
@@ -580,6 +582,7 @@ class FotoModelApp(ctk.CTk):
             self.after(0, self.hide_spinner)
 
     # download and show fetched list
+    # !!! burada bir hata var fotolar gösterilmiyor !!!
     def show_templates(self, filenames):
         self.gallery_mode = "fetch"
 
@@ -620,6 +623,52 @@ class FotoModelApp(ctk.CTk):
         frame.selected = not frame.selected
         frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
 
+    def relayout_gallery(self):
+        if not self.templates_ready:
+            return 
+        
+        width = self.canvas.winfo_width()
+        if width <= 1:
+            self.after(50, self.relayout_gallery)
+            return
+
+        cols = max(self.MIN_COLS, width // (self.CARD_WIDTH + self.CARD_PAD))
+        
+        self._current_cols = cols
+        self.update_visible()
+
+    def update_visible(self):
+        if not self.templates_ready or not self._current_cols:
+            return
+        
+        # upload mode -> show everything
+        if self.gallery_mode == "upload":
+            for i, frame in enumerate(self.template_cards):
+                r = i // self._current_cols
+                c = i % self._current_cols
+                frame.grid(row=r, column=c, padx=15, pady=15)
+            return
+
+        # fetch mode -> lazy loading
+        start, end = self.get_visible_indices()
+        if (start, end) == self.visible_range:
+            return
+
+        self.visible_range = (start, end)
+
+        for i, frame in enumerate(self.template_cards):
+            if start <= i < end:
+                r = i // self._current_cols
+                c = i % self._current_cols
+                frame.grid(row=r, column=c, padx=15, pady=15)
+
+            if self.gallery_mode == "fetch":
+                if not frame.loaded:
+                    self.load_image_async(frame)
+
+            else:
+                frame.grid_forget()
+
     # calculate visible area
     def get_visible_indices(self):
         y1 = self.canvas.canvasy(0)
@@ -643,7 +692,7 @@ class FotoModelApp(ctk.CTk):
             
             res = self.supabase.download_templates_fromdb(fn)
             img = Image.open(BytesIO(res))
-            # img = img.resize((200,150))
+            img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
 
             self.pil_cache[fn] = img
             self.ctk_cache[fn] = ctk.CTkImage(
@@ -674,50 +723,6 @@ class FotoModelApp(ctk.CTk):
         lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
 
         frame.loaded = True
-
-    def update_visible(self):
-        if not self.templates_ready or not self._current_cols:
-            return
-        
-        start, end = self.get_visible_indices()
-        if (start, end) == self.visible_range:
-            return
-
-        self.visible_range = (start, end)
-
-        for i, frame in enumerate(self.template_cards):
-            if start <= i < end:
-                r = i // self._current_cols
-                c = i % self._current_cols
-                frame.grid(row=r, column=c, padx=15, pady=15)
-
-            if self.gallery_mode == "fetch":
-                if not frame.loaded:
-                    self.load_image_async(frame)
-
-            if self.gallery_mode == "upload":
-                for i, frame in enumerate(self.template_cards):
-                    r = i // self._current_cols
-                    c = i % self._current_cols
-                    frame.grid(row=r, column=c, padx=15, pady=15)
-                return
-
-            else:
-                frame.grid_forget()
-    
-
-    def relayout_gallery(self):
-        if not self.templates_ready:
-            return 
-        
-        canvas_width = self.canvas.winfo_width()
-        cols = max(self.MIN_COLS, canvas_width // (self.CARD_WIDTH + self.CARD_PAD))
-        
-        if self._current_cols is not None and self._current_cols == cols:
-            return
-        
-        self._current_cols = cols
-        self.update_visible()
 
     # delete selected templates from supabase storage
     def delete_selected_templates(self):

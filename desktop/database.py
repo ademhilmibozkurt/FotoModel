@@ -102,7 +102,6 @@ class SupabaseDB(object):
                     "content-type": "image/jpeg"
                 }
             )
-            print("Şu an originalda")
 
         else:
             # thumbnail
@@ -114,7 +113,6 @@ class SupabaseDB(object):
                     "content-type": "image/jpeg"
                 }
             )
-            print("şu an thumbda")
 
     # ----------- deletion ------------
     def delete_template_fromdb(self, filename):
