@@ -399,11 +399,12 @@ class FotoModelApp(ctk.CTk):
             command=self.upload_images_ui_wspinner
         ).pack(side="left", padx=(0,10))
 
-        ctk.CTkButton(
+        self.btnGetTemplates = ctk.CTkButton(
             top_bar,
             text="Şablonları Getir",
             command=self.fetch_templates
-        ).pack(side="left")
+        )
+        self.btnGetTemplates.pack(side="left")
 
         # content section of the upload tab
         content_frame = ctk.CTkFrame(tab)
@@ -437,7 +438,7 @@ class FotoModelApp(ctk.CTk):
                 daemon=True
             ).start())
         self.btnSubmit.pack(side="left")
-        self.switch_submit_button()
+        self.switch_button(self.btnSubmit, "normal")
         
         self.btnDelete = ctk.CTkButton(
             bottom_bar,
@@ -447,18 +448,13 @@ class FotoModelApp(ctk.CTk):
             command=self.delete_selected_templates
         )
         self.btnDelete.pack(side="right")
-        self.swtich_delete_button()
+        self.switch_button(self.btnDelete, "disabled")
 
     # button disabling for prevent conflicts
-    def switch_submit_button(self, state="disabled"):
-        if not self.btnSubmit:
+    def switch_button(self, btn, state="disabled"):
+        if not btn:
             return
-        self.btnSubmit.configure(state=state)
-
-    def swtich_delete_button(self, state="disabled"):
-        if not self.btnDelete:
-            return
-        self.btnDelete.configure(state=state)
+        btn.configure(state=state)
 
     # upload to ui 
     def upload_images_ui_wspinner(self):
@@ -466,13 +462,12 @@ class FotoModelApp(ctk.CTk):
             task=lambda:self.upload_images_tab(),
             loading_text="Yükleniyor..."
         )
-
         # clean the screen for futher uploads
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
         self.images.clear()
-        self.switch_submit_button("normal")
-        self.swtich_delete_button()
+        self.switch_button(self.btnSubmit, "normal")
+        self.switch_button(self.btnDelete, "disabled")
 
     # upload template photos to supabase storage
     def upload_images_tab(self):
@@ -523,7 +518,7 @@ class FotoModelApp(ctk.CTk):
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.after(0, self.relayout_gallery)
+            self.after_idle(self.relayout_gallery)
         
             self.log(f"Yüklendi: {path}")
 
@@ -542,7 +537,8 @@ class FotoModelApp(ctk.CTk):
             widget.destroy()
         self.images.clear()
         self.image_paths.clear()
-        self.switch_submit_button()
+        self.switch_button(self.btnSubmit)
+        self.switch_button(self.btnGetTemplates, "normal")
 
     def _upload_worker(self):
         self.show_spinner()
@@ -585,16 +581,17 @@ class FotoModelApp(ctk.CTk):
     def fetch_templates(self, folder="thumbs"):
         self.show_spinner()
 
+        self.switch_button(self.btnDelete, "normal")
+        self.switch_button(self.btnGetTemplates, state="disabled")
+
         threading.Thread(
-            target=self.fetch_templates_worker,
+            target=self._fetch_templates_worker,
             args=(folder,),
             daemon=True
         ).start()
 
-        self.swtich_delete_button("normal")
-
-    def fetch_templates_worker(self, folder):
-        self.switch_submit_button()
+    def _fetch_templates_worker(self, folder):
+        self.switch_button(self.btnSubmit, "disabled")
         try:
             templates = self.supabase.fetch_templates_fromdb(folder)
             filenames = [t["name"] for t in templates]
@@ -607,7 +604,6 @@ class FotoModelApp(ctk.CTk):
             self.after(0, self.hide_spinner)
 
     # download and show fetched list
-    # !!! burada bir hata var fotolar gösterilmiyor !!!
     def show_templates(self, filenames):
         self.gallery_mode = "fetch"
 
@@ -651,6 +647,9 @@ class FotoModelApp(ctk.CTk):
     def relayout_gallery(self):
         if not self.templates_ready:
             return 
+        
+        if not self.canvas.winfo_exists():
+            return
         
         width = self.canvas.winfo_width()
         if width <= 1:
@@ -772,7 +771,7 @@ class FotoModelApp(ctk.CTk):
             daemon=True
         ).start()
 
-        self.swtich_delete_button()
+        self.switch_button(self.btnDelete, "disabled")
 
     def delete_templates_worker(self, selected):
         self.after(0, self.show_spinner)
