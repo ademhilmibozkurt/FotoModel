@@ -579,8 +579,10 @@ class FotoModelApp(ctk.CTk):
 
     # ---- template fetching ------- fetch photo list from db
     def fetch_templates(self, folder="thumbs"):
-        self.show_spinner()
-
+        if getattr(self, "templates_loading", False):
+            return
+        
+        self.templates_loading = True
         self.switch_button(self.btnDelete, "normal")
         self.switch_button(self.btnGetTemplates, state="disabled")
 
@@ -591,6 +593,7 @@ class FotoModelApp(ctk.CTk):
         ).start()
 
     def _fetch_templates_worker(self, folder):
+        self.show_spinner()
         self.switch_button(self.btnSubmit, "disabled")
         try:
             templates = self.supabase.fetch_templates_fromdb(folder)
@@ -602,6 +605,7 @@ class FotoModelApp(ctk.CTk):
 
         finally:
             self.after(0, self.hide_spinner)
+            self.templates_loading = False
 
     # download and show fetched list
     def show_templates(self, filenames):
@@ -657,7 +661,7 @@ class FotoModelApp(ctk.CTk):
             return
 
         cols = max(self.MIN_COLS, width // (self.CARD_WIDTH + self.CARD_PAD))
-        
+
         self._current_cols = cols
         self.visible_range = (-1, -1)
         self.update_visible()
