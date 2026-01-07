@@ -472,6 +472,7 @@ class FotoModelApp(ctk.CTk):
     # !!! upload kısmında fotolar gelmiyor fetch yapınca sadece bir foto geliyor
     # upload template photos to supabase storage
     def upload_images_tab(self):
+        self.gallery_mode = "upload"
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
@@ -517,7 +518,7 @@ class FotoModelApp(ctk.CTk):
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.after(50, self.relayout_gallery)
+            self.after_idle(self.relayout_gallery)
         
             self.log(f"Yüklendi: {path}")
 
@@ -526,7 +527,6 @@ class FotoModelApp(ctk.CTk):
 
     # upload to db
     def upload_templates_todb(self):
-        self.gallery_mode = "upload"
         threading.Thread(
             target=self._upload_worker,
             daemon=True
