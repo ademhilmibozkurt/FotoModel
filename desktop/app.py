@@ -469,10 +469,9 @@ class FotoModelApp(ctk.CTk):
         self.switch_button(self.btnSubmit, "normal")
         self.switch_button(self.btnDelete, "disabled")
 
+    # !!! upload kısmında fotolar gelmiyor fetch yapınca sadece bir foto geliyor
     # upload template photos to supabase storage
     def upload_images_tab(self):
-        self.gallery_mode = "upload"
-
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
@@ -480,7 +479,7 @@ class FotoModelApp(ctk.CTk):
         self.image_paths.clear()
         self.template_cards.clear()
         self.templates_ready = False
-        self.pil_cache = {}
+        self.image_cache = {}
 
         paths = filedialog.askopenfilenames(
             title="Şablon Seç",
@@ -491,12 +490,12 @@ class FotoModelApp(ctk.CTk):
         try:
             for path in paths:
                 # caching - refactor code below
-                if path not in self.pil_cache:
+                if path not in self.image_cache:
                     img = Image.open(path)
                     img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
-                    self.pil_cache[path] = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
+                    self.image_cache[path] = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
                     
-                ctk_img = self.pil_cache[path]
+                ctk_img = self.image_cache[path]
                 frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
                 # content on the frame fixed
                 frame.grid_propagate(False)
@@ -518,7 +517,7 @@ class FotoModelApp(ctk.CTk):
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.after_idle(self.relayout_gallery)
+            self.after(50, self.relayout_gallery)
         
             self.log(f"Yüklendi: {path}")
 
@@ -527,6 +526,7 @@ class FotoModelApp(ctk.CTk):
 
     # upload to db
     def upload_templates_todb(self):
+        self.gallery_mode = "upload"
         threading.Thread(
             target=self._upload_worker,
             daemon=True
@@ -701,6 +701,9 @@ class FotoModelApp(ctk.CTk):
 
             else:
                 frame.grid_forget()
+        
+        self.preview_frame.update_idletasks()
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     # calculate visible area
     def get_visible_indices(self):
@@ -718,11 +721,13 @@ class FotoModelApp(ctk.CTk):
     
     # loading images with threading
     def load_image_async(self, frame):
-        def worker():
-            fn = frame.filename
-            if fn in self.ctk_cache:
-                return
+        fn = frame.filename
+        # if cache exist attach it
+        if fn in self.ctk_cache:
+            self.after(0, lambda: self.attach_image(frame))
+            return
             
+        def worker():
             res = self.supabase.download_templates_fromdb(fn)
             img = Image.open(BytesIO(res))
             img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
@@ -779,20 +784,18 @@ class FotoModelApp(ctk.CTk):
 
     def delete_templates_worker(self, selected):
         self.after(0, self.show_spinner)
-
         try:
             for filename in selected:
                 self.supabase.delete_template_fromdb(filename)
 
-            # !!! cache mekanizması ekle fotolar çok geç geliyor ve ui donuyor !!!
-            self.after(0, self.fetch_templates)
+            self.after(10, self.fetch_templates)
             print("DELETE RESPONSE: Deleted!")
 
         except Exception as e:
             self.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
 
         finally:
-            self.after(0, self.hide_spinner)
+            self.after(50, self.hide_spinner)
 
     # -------- link creating tab ---------
     def create_link_tab(self):
