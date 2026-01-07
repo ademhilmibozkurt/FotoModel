@@ -1,8 +1,6 @@
-# 1. şablon getirmede lazy loading
 # 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
 # veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
 # 3. parallel upload ve parallel delete
-# 4. yükleme işleminde file dialoga tekrar gidilince ekran yenilemesini yap
 # 5. müşteri seçimlerini silme işlemi ekle
 # 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
 # 7. bütün kodu refactor. okuma, anlama ve bakımı kolaylaştır

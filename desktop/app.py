@@ -45,7 +45,7 @@ class FotoModelApp(ctk.CTk):
         # resize renderer binding  
         self.bind("<Configure>", self.on_window_resize)
         # listen canvas size changes
-        self.preview_frame.bind("<Configure>", lambda e: self.relayout_gallery)
+        self.preview_frame.bind("<Configure>", lambda e: self.relayout_gallery())
 
         # for lazy loading
         self.gallery_mode = "None"
@@ -350,11 +350,14 @@ class FotoModelApp(ctk.CTk):
             if filename not in self.selected_template_cache:
                 img = self.supabase.download_templates_fromdb(filename, folder="original")
 
-                img = Image.open(BytesIO(img))
-                img = ImageOps.contain((384, 216), Image.LANCZOS)
+                if img == None:
+                    continue
+                else:
+                    img = Image.open(BytesIO(img))
+                    img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
 
-                ctk_img = ctk.CTkImage(img, size=img.size)
-                self.selected_template_cache[filename] = ctk_img
+                    ctk_img = ctk.CTkImage(img, size=img.size)
+                    self.selected_template_cache[filename] = ctk_img
 
             cell = ctk.CTkFrame(self.scroll)
             label = ctk.CTkLabel(cell, image=self.selected_template_cache[filename], text="")
@@ -426,21 +429,36 @@ class FotoModelApp(ctk.CTk):
         bottom_bar = ctk.CTkFrame(tab, fg_color="transparent")
         bottom_bar.pack(fill="x", padx=15, pady=(5, 15))
 
-        ctk.CTkButton(
+        self.btnSubmit = ctk.CTkButton(
             bottom_bar,
             text="Onayla",
             command=lambda: threading.Thread(
                 target=self.upload_templates_todb,
                 daemon=True
-            ).start()).pack(side="left")
-
-        ctk.CTkButton(
+            ).start())
+        self.btnSubmit.pack(side="left")
+        self.switch_submit_button()
+        
+        self.btnDelete = ctk.CTkButton(
             bottom_bar,
             text="🗑 Seçilenleri Sil",
             fg_color="#B91C1C",
             hover_color="#7F1D1D",
             command=self.delete_selected_templates
-        ).pack(side="right")
+        )
+        self.btnDelete.pack(side="right")
+        self.swtich_delete_button()
+
+    # button disabling for prevent conflicts
+    def switch_submit_button(self, state="disabled"):
+        if not self.btnSubmit:
+            return
+        self.btnSubmit.configure(state=state)
+
+    def swtich_delete_button(self, state="disabled"):
+        if not self.btnDelete:
+            return
+        self.btnDelete.configure(state=state)
 
     # upload to ui 
     def upload_images_ui_wspinner(self):
@@ -453,6 +471,8 @@ class FotoModelApp(ctk.CTk):
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
         self.images.clear()
+        self.switch_submit_button("normal")
+        self.swtich_delete_button()
 
     # upload template photos to supabase storage
     def upload_images_tab(self):
@@ -521,6 +541,8 @@ class FotoModelApp(ctk.CTk):
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
         self.images.clear()
+        self.image_paths.clear()
+        self.switch_submit_button()
 
     def _upload_worker(self):
         self.show_spinner()
@@ -548,7 +570,7 @@ class FotoModelApp(ctk.CTk):
                 err = future.result()
                 if err:
                     errors.append(err)
-
+        
         return errors
 
     def upload_pair(self, path):
@@ -569,7 +591,10 @@ class FotoModelApp(ctk.CTk):
             daemon=True
         ).start()
 
+        self.swtich_delete_button("normal")
+
     def fetch_templates_worker(self, folder):
+        self.switch_submit_button()
         try:
             templates = self.supabase.fetch_templates_fromdb(folder)
             filenames = [t["name"] for t in templates]
@@ -635,6 +660,7 @@ class FotoModelApp(ctk.CTk):
         cols = max(self.MIN_COLS, width // (self.CARD_WIDTH + self.CARD_PAD))
         
         self._current_cols = cols
+        self.visible_range = (-1, -1)
         self.update_visible()
 
     def update_visible(self):
@@ -644,6 +670,8 @@ class FotoModelApp(ctk.CTk):
         # upload mode -> show everything
         if self.gallery_mode == "upload":
             for i, frame in enumerate(self.template_cards):
+                if not frame.winfo_exists():continue
+
                 r = i // self._current_cols
                 c = i % self._current_cols
                 frame.grid(row=r, column=c, padx=15, pady=15)
@@ -657,6 +685,8 @@ class FotoModelApp(ctk.CTk):
         self.visible_range = (start, end)
 
         for i, frame in enumerate(self.template_cards):
+            if not frame.winfo_exists():continue
+
             if start <= i < end:
                 r = i // self._current_cols
                 c = i % self._current_cols
@@ -741,6 +771,8 @@ class FotoModelApp(ctk.CTk):
             args=(selected,),
             daemon=True
         ).start()
+
+        self.swtich_delete_button()
 
     def delete_templates_worker(self, selected):
         self.after(0, self.show_spinner)
