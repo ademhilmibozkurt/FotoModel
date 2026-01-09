@@ -1,6 +1,4 @@
 import os
-import time
-import json
 import threading
 from io import BytesIO
 import tkinter as tk
@@ -11,13 +9,14 @@ from database import SupabaseDB
 from photoOperations import PhotoOperations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from components.tabs.SelectionTab import SelectionTab
+
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 class FotoModelApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
         # ---------------- Window ----------------
         self.title("Foto Model Studio")
         self.geometry("1400x800")
@@ -26,14 +25,9 @@ class FotoModelApp(ctk.CTk):
 
         self.supabase = SupabaseDB()
         self.phop     = PhotoOperations()
-        self.all_data = []
         self.images   = []
         self.image_paths = []
         self.template_widgets = []
-
-        self.selected_template_cache = {}
-        self.grid_cells = []
-        self.resize_job = None
 
         # responsive columns
         self.CARD_WIDTH  = 268
@@ -108,7 +102,10 @@ class FotoModelApp(ctk.CTk):
         self.tabs.add("Şablon Yükleme")
         self.tabs.add("Log")
 
-        self.create_selection_tab()
+        # ---------------- Selection Tab ----------------
+        selection_tab = self.tabs.tab("Seçimler")
+        self.selection_tab = SelectionTab(self, selection_tab)
+
         self.create_link_tab()
         self.create_upload_tab()
 
@@ -145,245 +142,19 @@ class FotoModelApp(ctk.CTk):
         self.spinner_overlay.lower()
 
     def run_with_spinner(self, task, on_success=None, loading_text="Yükleniyor..."):
+        self.show_spinner(loading_text)
         def worker():
             try:
                 result = task()
-                if on_success:
-                    self.after(0, lambda: on_success(result))
+                self.after(0, lambda: on_success(result) if on_success else None)
             except Exception as e:
-                self.after(0, lambda: messagebox.showerror("Hata", str(e)))
-                self.after(0, lambda: self.log(f"HATA: {e}"))
+                err = str(e)
+                # self.after(0, lambda: messagebox.showerror("Hata", err))
+                # self.after(0, lambda: self.log(f"HATA: {err}"))
             finally:
                 self.after(0, self.hide_spinner)
 
-        self.show_spinner(loading_text)
         threading.Thread(target=worker, daemon=True).start()
-
-    # ---------------- Selection Tab ----------------
-    def create_selection_tab(self):
-        tab = self.tabs.tab("Seçimler")
-
-        search_frame = ctk.CTkFrame(tab)
-        search_frame.pack(fill="x", padx=10, pady=5)
-
-        ctk.CTkLabel(search_frame, text="Ara:").pack(side="left", padx=5)
-
-        self.search_var = tk.StringVar()
-        self.search_var.trace_add("write", self.filter_tree)
-
-        ctk.CTkEntry(
-            search_frame,
-            textvariable=self.search_var,
-            width=300
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            search_frame,
-            text="Güncelle",
-            command=self.load_supabase_data
-        ).pack(side="right", padx=5)
-
-        # ---- TreeView (ttk) ----
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure(
-            "Treeview",
-            background="#1f2937",
-            foreground="white",
-            fieldbackground="#1f2937",
-            rowheight=28
-        )
-        style.configure("Treeview.Heading", background="#111827", foreground="white")
-
-        self.tree = ttk.Treeview(tab)
-        self.tree.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # open new window with double click
-        self.tree.bind("<Double-1>", self.on_tree_double_click)
-
-        # is_completed state toggle
-        self.tree.bind("<Button-1>", self.on_tree_single_click)
-
-    def load_supabase_data(self):
-        try:
-            self.run_with_spinner(
-                task=self.supabase.fetch_template_selection,
-                on_success=self.on_supabase_loaded,
-                loading_text="Veriler getiriliyor..."
-            )
-        except Exception as e:
-            messagebox.showerror("Veritabanı Hatası", str(e))
-            self.log(f"HATA: {e}")
-
-    def on_supabase_loaded(self, data):
-        self.all_data = data
-        self.refresh_tree(self.all_data)
-        self.log(f"Seçimler getirildi ({time.strftime('%H:%M:%S')})")
-
-    def refresh_tree(self, data):
-        self.tree.delete(*self.tree.get_children())
-
-        if not data:
-            return
-
-        columns = list(data[0].keys())
-
-        # add is_completed state
-        if "Durum" not in columns:
-            columns.insert(0, "Durum")
-
-        self.tree["columns"] = columns
-        self.tree["show"] = "headings"
-
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=80)
-
-        # for show selected templates in new window
-        self.tree_record_map = {}
-        for row in data:
-            completed = row.get("is_completed", False)
-            status_text = "✔" if completed else "⬜"
-            
-            values = [status_text] + list(row.values())
-
-            item_id = self.tree.insert("", "end", values=values)
-            self.tree_record_map[item_id] = row
-
-    def filter_tree(self, *args):
-        query = self.search_var.get().lower()
-
-        if not query:
-            self.refresh_tree(self.all_data)
-            return
-
-        filtered = [
-            row for row in self.all_data
-            if any(query in str(v).lower() for v in row.values())
-        ]
-
-        self.refresh_tree(filtered)
-
-    # on single click update is_completed state
-    def on_tree_single_click(self, event):
-        region = self.tree.identify("region", event.x, event.y)
-        if region != "cell":
-            return
-
-        column = self.tree.identify_column(event.x)
-        if column != "#1":
-            return
-
-        row_id = self.tree.identify_row(event.y)
-        if not row_id:
-            return
-
-        values = list(self.tree.item(row_id, "values"))
-        current = values[0]
-
-        new_value = "✔" if current == "⬜" else "⬜"
-        values[0] = new_value
-        self.tree.item(row_id, values=values)
-
-        record = self.tree_record_map.get(row_id)
-        if record:
-            self.supabase.update_completed_status(record, new_value == "✔")
-
-    # on double click open new window for show selected images
-    def on_tree_double_click(self, event):
-        selected = self.tree.selection()
-        if not selected:
-            return
-
-        item_id = selected[0]
-        record = self.tree_record_map.get(item_id)
-
-        if not record:
-            return
-
-        self.run_with_spinner(
-            task=lambda: self.open_selection_detail(record),
-            loading_text="Yükleniyor..."
-        )
-        
-    # !! fotoğraflar grid yapısında yan yana gözükmeli altalta gözüküyor !!
-    # selected templates window
-    def open_selection_detail(self, record):
-        window = ctk.CTkToplevel(self)
-        window.title("Seçilen Fotoğraflar")
-        window.geometry("1400x800")
-
-        header = ctk.CTkFrame(window)
-        header.pack(fill="x", padx=20, pady=10)
-
-        ctk.CTkLabel(header, text=f"İsim   : {record['İsim']}").pack(anchor="w")
-        ctk.CTkLabel(header, text=f"Telefon: {record['Telefon']}").pack(anchor="w")
-        ctk.CTkLabel(header, text=f"Tarih  : {record['Tarih']}").pack(anchor="w")
-
-        selected = record["Seçimler"]
-        if isinstance(selected, str):
-            selected = json.loads(selected)
-
-        threading.Thread(
-            target=self.render_selected_photos,
-            args=(window, selected),
-            daemon=True
-        ).start()
-
-        # for responsive screen size
-        window.bind("<Configure>", self.on_resize)
-
-    def on_resize(self, event):
-        if self.resize_job:
-            self.after_cancel(self.resize_job)
-
-        self.resize_job = self.after(80, self.reflow_grid)
-
-    # get images from db - this code below doing same job like show_templates_as_image
-    def render_selected_photos(self, parent, selected_templates):
-        self.scroll = ctk.CTkScrollableFrame(parent)
-        self.scroll.pack(fill="both", expand=True, padx=20, pady=10)
-
-        self.grid_cells.clear()
-
-        for filename in selected_templates:
-            if filename not in self.selected_template_cache:
-                img = self.supabase.download_templates_fromdb(filename, folder="original")
-
-                if img == None:
-                    continue
-                else:
-                    img = Image.open(BytesIO(img))
-                    img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
-
-                    ctk_img = ctk.CTkImage(img, size=img.size)
-                    self.selected_template_cache[filename] = ctk_img
-
-            cell = ctk.CTkFrame(self.scroll)
-            label = ctk.CTkLabel(cell, image=self.selected_template_cache[filename], text="")
-            label.image = self.selected_template_cache[filename]
-            label.pack()
-
-            self.grid_cells.append(cell)
-
-        self.reflow_grid()
-    
-    def reflow_grid(self):
-        if not self.grid_cells:
-            return
-
-        container_width = self.scroll.winfo_width()
-        if container_width <= 1:
-            return
-
-        photo_size = 268
-        max_columns = max(1, container_width // photo_size)
-
-        for index, cell in enumerate(self.grid_cells):
-            r = index // max_columns
-            c = index % max_columns
-
-            cell.grid(row=r, column=c, padx=10, pady=10, sticky="n")
 
     # ---------------- Upload Tab ----------------
     def create_upload_tab(self):
@@ -469,7 +240,6 @@ class FotoModelApp(ctk.CTk):
         self.switch_button(self.btnSubmit, "normal")
         self.switch_button(self.btnDelete, "disabled")
 
-    # !!! upload kısmında fotolar gelmiyor fetch yapınca sadece bir foto geliyor
     # upload template photos to supabase storage
     def upload_images_tab(self):
         self.gallery_mode = "upload"
@@ -518,7 +288,7 @@ class FotoModelApp(ctk.CTk):
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.after_idle(self.relayout_gallery)
+            self.after(50, self.relayout_gallery)
         
             self.log(f"Yüklendi: {path}")
 
@@ -642,7 +412,6 @@ class FotoModelApp(ctk.CTk):
 
         self.templates_ready = True
         self.relayout_gallery()
-        self.update_visible()
 
     def toggle_select(self, frame):
         frame.selected = not frame.selected
@@ -652,10 +421,10 @@ class FotoModelApp(ctk.CTk):
         if not self.templates_ready:
             return 
         
-        if not self.canvas.winfo_exists():
+        if not self.preview_frame.winfo_exists():
             return
         
-        width = self.canvas.winfo_width()
+        width = self.preview_frame.winfo_width()
         if width <= 1:
             self.after(50, self.relayout_gallery)
             return
@@ -687,20 +456,20 @@ class FotoModelApp(ctk.CTk):
 
         self.visible_range = (start, end)
 
-        for i, frame in enumerate(self.template_cards):
-            if not frame.winfo_exists():continue
+        if self.gallery_mode == "fetch":
+            for i, frame in enumerate(self.template_cards):
+                if not frame.winfo_exists():continue
 
-            if start <= i < end:
-                r = i // self._current_cols
-                c = i % self._current_cols
-                frame.grid(row=r, column=c, padx=15, pady=15)
+                if start <= i < end:
+                    r = i // self._current_cols
+                    c = i % self._current_cols
+                    frame.grid(row=r, column=c, padx=15, pady=15)
 
-            if self.gallery_mode == "fetch":
-                if not frame.loaded:
-                    self.load_image_async(frame)
+                    if not frame.loaded:
+                        self.load_image_async(frame)
 
-            else:
-                frame.grid_forget()
+                else:
+                    frame.grid_forget()
         
         self.preview_frame.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
