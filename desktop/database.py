@@ -54,7 +54,8 @@ class SupabaseDB(object):
     # get form link for customer use
     def get_link(self, domain="http://127.0.0.1:8000"):
         res = requests.get(f"{domain}/create-link")
-        return f"{domain}/form/{res.json()}"
+        link_id = res.json()['link_id'][0]
+        return f"{domain}/form/{link_id}"
 
     # fetch işleminde her sefer ui donuyor
     def fetch_templates_fromdb(self, folder="thumbs"):

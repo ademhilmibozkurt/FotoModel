@@ -1,15 +1,12 @@
 import os
 import threading
-from io import BytesIO
 import tkinter as tk
 import customtkinter as ctk
-from tkinter import ttk, filedialog, messagebox
-from PIL import Image, ImageOps
-from database import SupabaseDB
-from photoOperations import PhotoOperations
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from tkinter import messagebox
+from PIL import Image
 
 from components.tabs.SelectionTab import SelectionTab
+from components.tabs.LinkTab import LinkTab
 from components.tabs.UploadTab import UploadTab
 
 ctk.set_appearance_mode("dark")
@@ -23,48 +20,6 @@ class FotoModelApp(ctk.CTk):
         self.geometry("1400x800")
         self.create_ui()
         self.create_spinner()
-
-        """self.supabase = SupabaseDB()
-        self.phop     = PhotoOperations()
-        self.images   = []
-        self.image_paths = []
-        self.template_widgets = []
-
-        # responsive columns
-        self.CARD_WIDTH  = 268
-        self.CARD_HEIGHT = 151
-        self.CARD_PAD    = 25
-        self.MIN_COLS    = 2
-        self.templates_ready = False
-
-        # resize renderer binding  
-        self.bind("<Configure>", self.on_window_resize)
-        # listen canvas size changes
-        self.preview_frame.bind("<Configure>", lambda e: self.relayout_gallery())
-
-        # for lazy loading
-        self.gallery_mode = "None"
-        self._current_cols   = None
-        self.template_cards = []
-        self.pil_cache = {}
-        self.ctk_cache = {}
-        self.visible_range = (0, 0)
-        self.MAX_VISIBLE = 40
-        self.BUFFER = 12
-
-        # limit the number of parallel operations
-        self.UPLOAD_LIMIT = 3
-        self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
-
-        # for calling render_gallery() multiple times
-    def on_window_resize(self, event):
-        if not self.templates_ready or event.widget != self:
-            return
-
-        if hasattr(self, "_resize_job"):
-            self.after_cancel(self._resize_job)
-
-        self._resize_job = self.after(80, self.relayout_gallery)"""
 
     # ---------------- UI ----------------
     def create_ui(self):
@@ -107,13 +62,15 @@ class FotoModelApp(ctk.CTk):
         selection_tab = self.tabs.tab("Seçimler")
         self.selection_tab = SelectionTab(self, selection_tab)
 
-        self.create_link_tab()
+        # -------- link creating tab ---------
+        # self.create_link_tab()
+        link_tab = self.tabs.tab("Link Oluştur")
+        self.link_tab = LinkTab(self, link_tab)
 
         # ---------------- Upload Tab ----------------
-        # self.create_upload_tab()
         upload_tab = self.tabs.tab("Şablon Yükleme")
         self.upload_tab = UploadTab(self, upload_tab)
-
+        
     # -------------- Spinner --------------
     def create_spinner(self):
         self.spinner_overlay = ctk.CTkFrame(
@@ -162,7 +119,7 @@ class FotoModelApp(ctk.CTk):
         threading.Thread(target=worker, daemon=True).start()
 
     # -------- link creating tab ---------
-    def create_link_tab(self):
+    """def create_link_tab(self):
         tab = self.tabs.tab("Link Oluştur")
 
         container = ctk.CTkFrame(tab, fg_color="transparent")
@@ -228,7 +185,7 @@ class FotoModelApp(ctk.CTk):
         self.update()
 
         self.link_var.set("✅ Kopyalandı")
-        self.after(1500, lambda: self.link_var.set(link))
+        self.after(1500, lambda: self.link_var.set(link))"""
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):
