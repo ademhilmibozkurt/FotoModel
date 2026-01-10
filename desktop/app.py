@@ -1,10 +1,8 @@
 import os
-import threading
-import tkinter as tk
 import customtkinter as ctk
-from tkinter import messagebox
 from PIL import Image
 
+from components.Loader import Loader
 from components.tabs.SelectionTab import SelectionTab
 from components.tabs.LinkTab import LinkTab
 from components.tabs.UploadTab import UploadTab
@@ -19,7 +17,9 @@ class FotoModelApp(ctk.CTk):
         self.title("Foto Model Studio")
         self.geometry("1400x800")
         self.create_ui()
-        self.create_spinner()
+
+        # -------------- Spinner --------------
+        self.spinner = Loader(self)
 
     # ---------------- UI ----------------
     def create_ui(self):
@@ -70,122 +70,7 @@ class FotoModelApp(ctk.CTk):
         # ---------------- Upload Tab ----------------
         upload_tab = self.tabs.tab("Şablon Yükleme")
         self.upload_tab = UploadTab(self, upload_tab)
-        
-    # -------------- Spinner --------------
-    def create_spinner(self):
-        self.spinner_overlay = ctk.CTkFrame(
-        self,
-        fg_color=("gray90", "#020617"),corner_radius=0)
 
-        self.spinner_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
-        self.spinner_overlay.lower()
-
-        self.spinner = ctk.CTkProgressBar(
-            self.spinner_overlay,
-            mode="indeterminate",
-            width=300
-        )
-        self.spinner.pack(expand=True)
-
-        self.spinner_label = ctk.CTkLabel(
-            self.spinner_overlay,
-            text="Yükleniyor...",
-            font=ctk.CTkFont(size=14)
-        )
-        self.spinner_label.pack(pady=10)
-
-    def show_spinner(self, text="Yükleniyor..."):
-        self.spinner_label.configure(text=text)
-        self.spinner_overlay.lift()
-        self.spinner.start()
-
-    def hide_spinner(self):
-        self.spinner.stop()
-        self.spinner_overlay.lower()
-
-    def run_with_spinner(self, task, on_success=None, loading_text="Yükleniyor..."):
-        self.show_spinner(loading_text)
-        def worker():
-            try:
-                result = task()
-                self.after(0, lambda: on_success(result) if on_success else None)
-            except Exception as e:
-                err = str(e)
-                self.after(0, lambda: messagebox.showerror("HATA", err))
-                self.after(0, lambda: self.log(f"HATA: {err}"))
-            finally:
-                self.after(0, self.hide_spinner)
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    # -------- link creating tab ---------
-    """def create_link_tab(self):
-        tab = self.tabs.tab("Link Oluştur")
-
-        container = ctk.CTkFrame(tab, fg_color="transparent")
-        container.pack(expand=True)
-
-        self.link_btn = ctk.CTkButton(
-            container,
-            text="🔗 Link Oluştur",
-            command=self.create_link,
-            width=200,
-            height=40
-        )
-        self.link_btn.pack(pady=(0, 15))
-
-        result_frame = ctk.CTkFrame(container)
-        result_frame.pack()
-
-        self.link_var = tk.StringVar(value="")
-
-        self.link_label = ctk.CTkLabel(
-            result_frame,
-            textvariable=self.link_var,
-            wraplength=420,
-            text_color="#9ca3af"
-        )
-        self.link_label.pack(side="left", padx=(10, 5), pady=10)
-
-        self.copy_btn = ctk.CTkButton(
-            result_frame,
-            text="📋",
-            width=40,
-            command=self.copy_link
-        )
-        self.copy_btn.pack(side="left", padx=(5, 10))
-
-    def create_link(self):
-        self.show_spinner()
-        self.link_var.set("Link oluşturuluyor...")
-
-        threading.Thread(
-            target=self.create_link_worker,
-            daemon=True
-        ).start()
-
-    def create_link_worker(self):
-        try:
-            link = self.supabase.get_link()
-            self.after(0, lambda: self.link_var.set(link))
-
-        except Exception as e:
-            self.after(0, lambda: self.link_var.set(f"HATA: {e}"))
-
-        finally:
-            self.after(0, self.hide_spinner)
-
-    def copy_link(self):
-        link = self.link_var.get()
-        if not link:
-            return
-
-        self.clipboard_clear()
-        self.clipboard_append(link)
-        self.update()
-
-        self.link_var.set("✅ Kopyalandı")
-        self.after(1500, lambda: self.link_var.set(link))"""
 
     # ---------------- Log Tab ----------------
     def create_log_tab(self):

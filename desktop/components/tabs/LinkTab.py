@@ -48,7 +48,7 @@ class LinkTab:
         self.copy_btn.pack(side="left", padx=(5, 10))
 
     def create_link(self):
-        self.app.after(0, self.app.show_spinner)
+        self.app.after(0, self.app.spinner.show_spinner)
         self.link_var.set("Link oluşturuluyor...")
 
         threading.Thread(
@@ -64,7 +64,7 @@ class LinkTab:
             self.app.after(0, lambda: self.link_var.set(f"HATA: {e}"))
 
         finally:
-            self.app.after(0, self.app.hide_spinner)
+            self.app.after(0, self.app.spinner.hide_spinner)
 
     def copy_link(self):
         link = self.link_var.get()
