@@ -47,12 +47,12 @@ class Loader:
         def worker():
             try:
                 result = task()
-                self.after(0, lambda: on_success(result) if on_success else None)
+                self.app.after(0, lambda: on_success(result) if on_success else None)
             except Exception as e:
                 err = str(e)
-                self.after(0, lambda: messagebox.showerror("HATA", err))
-                self.after(0, lambda: self.log(f"HATA: {err}"))
+                self.app.after(0, lambda: messagebox.showerror("HATA", err))
+                self.app.after(0, lambda: self.log(f"HATA: {err}"))
             finally:
-                self.after(0, self.hide_spinner)
+                self.app.after(0, self.hide_spinner)
 
         self.app.after(0, threading.Thread(target=worker, daemon=True).start())

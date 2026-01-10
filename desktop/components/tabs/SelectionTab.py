@@ -70,7 +70,7 @@ class SelectionTab:
 
     def load_supabase_data(self):
         try:
-            self.app.run_with_spinner(
+            self.app.spinner.run_with_spinner(
                 task=self.supabase.fetch_template_selection,
                 on_success=self.on_supabase_loaded,
                 loading_text="Veriler getiriliyor..."
@@ -164,7 +164,7 @@ class SelectionTab:
         if not record:
             return
 
-        self.app.run_with_spinner(
+        self.app.spinner.run_with_spinner(
             task=lambda: self.open_selection_detail(record),
             loading_text="Yükleniyor..."
         )

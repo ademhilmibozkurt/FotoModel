@@ -128,7 +128,7 @@ class UploadTab:
 
     # upload to ui 
     def upload_images_ui_wspinner(self):
-        self.app.run_with_spinner(
+        self.app.spinner.run_with_spinner(
             task=lambda:self.upload_images_tab(),
             loading_text="Yükleniyor..."
         )
@@ -196,7 +196,7 @@ class UploadTab:
 
     # upload to db
     def upload_templates_todb(self):
-        self.app.after(0, self.app.show_spinner)
+        self.app.after(0, self.app.spinner.show_spinner)
         threading.Thread(
             target=self._upload_worker,
             daemon=True
@@ -222,7 +222,7 @@ class UploadTab:
                 "\n".join(errors[:5])
             )
         
-        self.app.after(0, self.app.hide_spinner)
+        self.app.after(0, self.app.spinner.hide_spinner)
 
     def upload_templates_parallel(self, paths: list):
         if not paths:
@@ -266,7 +266,7 @@ class UploadTab:
         ).start()
 
     def _fetch_templates_worker(self, folder):
-        self.app.after(0, self.app.show_spinner)
+        self.app.after(0, self.app.spinner.show_spinner)
         self.switch_button(self.btnSubmit, "disabled")
         try:
             templates = self.supabase.fetch_templates_fromdb(folder)
@@ -277,7 +277,7 @@ class UploadTab:
             self.app.after(0, lambda:messagebox.showerror("HATA: ", str(e)))
 
         finally:
-            self.app.after(0, self.app.hide_spinner)
+            self.app.after(0, self.app.spinner.hide_spinner)
             self.templates_loading = False
 
     # download and show fetched list
@@ -455,7 +455,7 @@ class UploadTab:
         self.switch_button(self.btnDelete, "disabled")
 
     def delete_templates_worker(self, selected):
-        self.app.after(0, self.app.show_spinner)
+        self.app.after(0, self.app.spinner.show_spinner)
         try:
             for filename in selected:
                 self.supabase.delete_template_fromdb(filename)
@@ -467,4 +467,4 @@ class UploadTab:
             self.app.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
 
         finally:
-            self.app.after(50, self.app.hide_spinner)
+            self.app.after(50, self.app.spinner.hide_spinner)

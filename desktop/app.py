@@ -53,25 +53,21 @@ class FotoModelApp(ctk.CTk):
         self.tabs = ctk.CTkTabview(self)
         self.tabs.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.tabs.add("Seçimler")
-        self.tabs.add("Link Oluştur")
-        self.tabs.add("Şablon Yükleme")
-        self.tabs.add("Log")
-
         # ---------------- Selection Tab ----------------
-        selection_tab = self.tabs.tab("Seçimler")
+        selection_tab = self.tabs.add("Seçimler")
         self.selection_tab = SelectionTab(self, selection_tab)
 
         # -------- link creating tab ---------
         # self.create_link_tab()
-        link_tab = self.tabs.tab("Link Oluştur")
+        link_tab = self.tabs.add("Link Oluştur")
         self.link_tab = LinkTab(self, link_tab)
 
         # ---------------- Upload Tab ----------------
-        upload_tab = self.tabs.tab("Şablon Yükleme")
+        upload_tab = self.tabs.add("Şablon Yükleme")
         self.upload_tab = UploadTab(self, upload_tab)
 
-
+        self.tabs.add("Log")
+        
     # ---------------- Log Tab ----------------
     def create_log_tab(self):
         tab = self.tabs.tab("Log")
