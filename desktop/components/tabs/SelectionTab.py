@@ -6,6 +6,7 @@ from tkinter import ttk
 import customtkinter as ctk
 from io import BytesIO
 from PIL import Image, ImageOps
+from threading import Semaphore
 
 from database import SupabaseDB
 
@@ -16,6 +17,8 @@ class SelectionTab:
         self.tab = tab
         self.supabase = SupabaseDB()
 
+        self.COLS = 5
+
         self.search_var = tk.StringVar()
         self.tree = None
         self.all_data = []
@@ -24,6 +27,8 @@ class SelectionTab:
         self.selected_template_cache = {}
 
         self.create_ui()
+
+        self.download_semaphore = Semaphore(3)
 
     def create_ui(self):
         search_frame = ctk.CTkFrame(self.tab)
@@ -101,7 +106,7 @@ class SelectionTab:
 
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=80)
+            self.tree.column(col, width=50)
 
         # for show selected templates in new window
         self.tree_record_map = {}
@@ -171,7 +176,8 @@ class SelectionTab:
     def open_selection_detail(self, record):
         self.window = ctk.CTkToplevel(self.app)
         self.window.title("Seçilen Fotoğraflar")
-        self.window.geometry("1400x800")
+        self.window.geometry("1600x1000")
+        self.window.resizable(False, False)
 
         header = ctk.CTkFrame(self.window)
         header.pack(fill="x", padx=20, pady=10)
@@ -190,24 +196,38 @@ class SelectionTab:
         self.selected_filenames = selected
         self.loaded_indices     = set()
 
-        """threading.Thread(
-            target=self._load_images_worker,
-            args=(selected,),
-            daemon=True
-        ).start()"""
+        self.grid_cells = [None] * len(self.selected_filenames)
+        self.placeholder_frames = []
 
         # for responsive screen size
-        self.window.bind("<Configure>", self.on_resize)
+        # self.window.bind("<Configure>", self.on_resize)
 
         # lazy loading binding
         self.scroll._parent_canvas.bind("<Configure>", lambda e: self.load_visible_images())
+
+        self._create_placeholders()
         self.app.after(100, self.load_visible_images)
 
-    def on_resize(self, event):
+    # for prevent fixed scroll to load new images
+    def _create_placeholders(self):
+        for i in range(len(self.selected_filenames)):
+            cell = ctk.CTkFrame(self.scroll, width=268, height=151)
+            cell.grid_propagate(False)
+
+            r = i // self.COLS
+            c = i % self.COLS
+            cell.grid(row=r, column=c, padx=10, pady=10)
+
+            self.placeholder_frames.append(cell)
+            # self.grid_cells.append(None)
+
+        # self.reflow_grid()
+
+    """def on_resize(self, event):
         if self.resize_job:
             self.app.after_cancel(self.resize_job)
 
-        self.resize_job = self.app.after(80, self.reflow_grid)
+        self.resize_job = self.app.after(80, self.reflow_grid)"""
     
     def load_visible_images(self):
         if not self.scroll.winfo_exists():
@@ -234,79 +254,48 @@ class SelectionTab:
         y2 = y1 + canvas.winfo_height()
 
         row_h = 171
-        cols = max(1, canvas.winfo_width() // 268)
+        # cols = max(1, canvas.winfo_width() // 268)
 
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) + 1
 
-        start = start_row * cols
-        end   = end_row * cols
+        start = start_row * self.COLS # cols
+        end   = end_row * self.COLS # cols
 
         return start, min(end, len(self.selected_filenames))
 
     def _load_single_image(self, filename, index):
-        img = self.supabase.download_templates_fromdb(filename, folder="original")
-        if not img:
-            return
-        
-        img = Image.open(BytesIO(img))
-        img = ImageOps.contain(img, (268,151), Image.LANCZOS)
-        ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=img.size)
+        with self.download_semaphore:
+            try:
+                img = self.supabase.download_templates_fromdb(filename, folder="original")
+                if not img:
+                    return
+                
+                img = Image.open(BytesIO(img))
+                img = ImageOps.contain(img, (268,151), Image.LANCZOS)
+                ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=img.size)
 
-        self.app.after(0, lambda: self._attach_image(ctk_img, index))
+                self.app.after(0, lambda: self._attach_image(ctk_img, index))
+
+            except Exception as e:
+                print(f"DOWNLOAD ERROR {filename} -> {e}")            
 
     def _attach_image(self, ctk_img, index):
         if not self.scroll.winfo_exists():
             return 
         
-        cell = ctk.CTkFrame(self.scroll)
-        lbl  = ctk.CTkLabel(cell, image=ctk_img, text="")
+        placeholder = self.placeholder_frames[index]
+
+        for w in placeholder.winfo_children():
+            w.destroy()
+
+        lbl  = ctk.CTkLabel(placeholder, image=ctk_img, text="")
         lbl.image = ctk_img
         lbl.pack()
         
-        self.grid_cells.append(cell)
-
-        canvas_width = self.scroll._parent_canvas.winfo_width()
-        cols = max(1, canvas_width // 288)
-        r = index // cols
-        c = index % cols
-
-        cell.grid(row=r, column=c, padx=10, pady=10)
-
-
-    """def _load_images_worker(self, selected):
-        images = []
-
-        self.app.spinner.show_spinner()
-        for filename in selected:
-            img = self.supabase.download_templates_fromdb(filename, folder="original")
-            if img:
-                img = Image.open(BytesIO(img))
-                img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
-                images.append((filename, img))
-
-        # !!! return main thread to UI
-        self.app.after(0, lambda: self.render_selected_photos(images))
-        self.app.spinner.hide_spinner()
-
-    # get images from db - this code below doing same job like show_templates_as_image
-    def render_selected_photos(self, images):
-        self.grid_cells.clear()
-
-        for filename, img in images:
-            ctk_img = ctk.CTkImage(img, size=img.size)
-            self.selected_template_cache[filename] = ctk_img
-
-            cell = ctk.CTkFrame(self.scroll)
-            label = ctk.CTkLabel(cell, image=self.selected_template_cache[filename], text="")
-            label.image = self.selected_template_cache[filename]
-            label.pack()
-
-            self.grid_cells.append(cell)
-
-        self.reflow_grid()"""
+        # self.grid_cells.append(placeholder)
     
-    def reflow_grid(self):
+    """def reflow_grid(self):
         if not self.grid_cells:
             return
 
@@ -322,4 +311,4 @@ class SelectionTab:
             r = index // cols
             c = index % cols
 
-            cell.grid(row=r, column=c, padx=10, pady=10)
+            cell.grid(row=r, column=c, padx=10, pady=10)"""
