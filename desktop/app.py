@@ -29,11 +29,11 @@ class FotoModelApp(ctk.CTk):
 
     # ---------------- Header ----------------
     def create_header(self):
-        header = ctk.CTkFrame(self, height=70, corner_radius=0)
+        header = ctk.CTkFrame(self, height=100, corner_radius=0)
         header.pack(fill="x")
 
         if os.path.exists("logo.jpg"):
-            logo_img = Image.open("logo.jpg").resize((50, 50))
+            logo_img = Image.open("logo.jpg").resize((70, 70))
             self.logo = ctk.CTkImage(logo_img)
 
             ctk.CTkLabel(

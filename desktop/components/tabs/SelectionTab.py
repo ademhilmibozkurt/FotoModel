@@ -9,6 +9,7 @@ from PIL import Image, ImageOps
 
 from database import SupabaseDB
 
+# !!!!! lazy loading şart büyük fotolar çok geç yükleniyor
 class SelectionTab:
     def __init__(self, app, tab):
         self.app = app
@@ -164,46 +165,119 @@ class SelectionTab:
         if not record:
             return
 
-        self.app.spinner.run_with_spinner(
-            task=lambda: self.open_selection_detail(record),
-            loading_text="Yükleniyor..."
-        )
+        self.open_selection_detail(record)
         
     # selected templates window
     def open_selection_detail(self, record):
-        window = ctk.CTkToplevel(self.app)
-        window.title("Seçilen Fotoğraflar")
-        window.geometry("1400x800")
+        self.window = ctk.CTkToplevel(self.app)
+        self.window.title("Seçilen Fotoğraflar")
+        self.window.geometry("1400x800")
 
-        header = ctk.CTkFrame(window)
+        header = ctk.CTkFrame(self.window)
         header.pack(fill="x", padx=20, pady=10)
 
         ctk.CTkLabel(header, text=f"İsim   : {record['İsim']}").pack(anchor="w")
         ctk.CTkLabel(header, text=f"Telefon: {record['Telefon']}").pack(anchor="w")
         ctk.CTkLabel(header, text=f"Tarih  : {record['Tarih']}").pack(anchor="w")
 
+        self.scroll = ctk.CTkScrollableFrame(self.window)
+        self.scroll.pack(fill="both", expand=True, padx=20, pady=10)
+
         selected = record["Seçimler"]
         if isinstance(selected, str):
             selected = json.loads(selected)
 
-        threading.Thread(
+        self.selected_filenames = selected
+        self.loaded_indices     = set()
+
+        """threading.Thread(
             target=self._load_images_worker,
-            args=(window, selected),
+            args=(selected,),
             daemon=True
-        ).start()
+        ).start()"""
 
         # for responsive screen size
-        window.bind("<Configure>", self.on_resize)
+        self.window.bind("<Configure>", self.on_resize)
+
+        # lazy loading binding
+        self.scroll._parent_canvas.bind("<Configure>", lambda e: self.load_visible_images())
+        self.app.after(100, self.load_visible_images)
 
     def on_resize(self, event):
         if self.resize_job:
             self.app.after_cancel(self.resize_job)
 
         self.resize_job = self.app.after(80, self.reflow_grid)
+    
+    def load_visible_images(self):
+        if not self.scroll.winfo_exists():
+            return
+        
+        start, end = self.get_visible_indices()
+        for i in range(start, end):
+            if i in self.loaded_indices:
+                continue
 
-    def _load_images_worker(self, window, selected):
+            self.loaded_indices.add(i)
+            filename = self.selected_filenames[i]
+
+            threading.Thread(
+                target=self._load_single_image,
+                args=(filename, i),
+                daemon=True
+            ).start()
+
+    def get_visible_indices(self):
+        canvas = self.scroll._parent_canvas
+
+        y1 = canvas.canvasy(0)
+        y2 = y1 + canvas.winfo_height()
+
+        row_h = 171
+        cols = max(1, canvas.winfo_width() // 268)
+
+        start_row = max(0, int(y1 // row_h) - 1)
+        end_row   = int(y2 // row_h) + 1
+
+        start = start_row * cols
+        end   = end_row * cols
+
+        return start, min(end, len(self.selected_filenames))
+
+    def _load_single_image(self, filename, index):
+        img = self.supabase.download_templates_fromdb(filename, folder="original")
+        if not img:
+            return
+        
+        img = Image.open(BytesIO(img))
+        img = ImageOps.contain(img, (268,151), Image.LANCZOS)
+        ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=img.size)
+
+        self.app.after(0, lambda: self._attach_image(ctk_img, index))
+
+    def _attach_image(self, ctk_img, index):
+        if not self.scroll.winfo_exists():
+            return 
+        
+        cell = ctk.CTkFrame(self.scroll)
+        lbl  = ctk.CTkLabel(cell, image=ctk_img, text="")
+        lbl.image = ctk_img
+        lbl.pack()
+        
+        self.grid_cells.append(cell)
+
+        canvas_width = self.scroll._parent_canvas.winfo_width()
+        cols = max(1, canvas_width // 288)
+        r = index // cols
+        c = index % cols
+
+        cell.grid(row=r, column=c, padx=10, pady=10)
+
+
+    """def _load_images_worker(self, selected):
         images = []
 
+        self.app.spinner.show_spinner()
         for filename in selected:
             img = self.supabase.download_templates_fromdb(filename, folder="original")
             if img:
@@ -212,13 +286,11 @@ class SelectionTab:
                 images.append((filename, img))
 
         # !!! return main thread to UI
-        self.app.after(0, lambda: self.render_selected_photos(window, images))
+        self.app.after(0, lambda: self.render_selected_photos(images))
+        self.app.spinner.hide_spinner()
 
     # get images from db - this code below doing same job like show_templates_as_image
-    def render_selected_photos(self, parent, images):
-        self.scroll = ctk.CTkScrollableFrame(parent)
-        self.scroll.pack(fill="both", expand=True, padx=20, pady=10)
-
+    def render_selected_photos(self, images):
         self.grid_cells.clear()
 
         for filename, img in images:
@@ -232,7 +304,7 @@ class SelectionTab:
 
             self.grid_cells.append(cell)
 
-        self.reflow_grid()
+        self.reflow_grid()"""
     
     def reflow_grid(self):
         if not self.grid_cells:
@@ -240,13 +312,14 @@ class SelectionTab:
 
         container_width = self.scroll.winfo_width()
         if container_width <= 1:
+            self.app.after(50, self.reflow_grid)
             return
 
-        photo_size = 268
-        max_columns = max(1, container_width // photo_size)
+        photo_size = 288
+        cols = max(1, container_width // photo_size)
 
         for index, cell in enumerate(self.grid_cells):
-            r = index // max_columns
-            c = index % max_columns
+            r = index // cols
+            c = index % cols
 
-            cell.grid(row=r, column=c, padx=10, pady=10, sticky="n")
+            cell.grid(row=r, column=c, padx=10, pady=10)
