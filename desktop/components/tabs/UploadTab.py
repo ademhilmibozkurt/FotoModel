@@ -46,6 +46,9 @@ class UploadTab:
         self.UPLOAD_LIMIT = 3
         self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
 
+        self.DOWNLOAD_LIMIT = 4
+        self.download_semaphore = threading.Semaphore(self.DOWNLOAD_LIMIT)
+
         # resize renderer binding  
         # self.app.bind("<Configure>", self.on_window_resize)
 
@@ -249,9 +252,10 @@ class UploadTab:
 
     def upload_pair(self, path):
         try:
-            supabase = SupabaseDB()
-            supabase.upload_template_todb(path, False)
-            supabase.upload_template_todb(path, True)
+            with self.upload_semaphore:
+                supabase = SupabaseDB()
+                supabase.upload_template_todb(path, False)
+                supabase.upload_template_todb(path, True)
         except Exception as e:
             return str(e)
 
@@ -274,10 +278,11 @@ class UploadTab:
         self.app.after(0, self.app.spinner.show_spinner)
         self.switch_button(self.btnSubmit, "disabled")
         try:
-            templates = self.supabase.fetch_templates_fromdb(folder)
-            filenames = [t["name"] for t in templates]
+            with self.download_semaphore:   
+                templates = self.supabase.fetch_templates_fromdb(folder)
+                filenames = [t["name"] for t in templates]
 
-            self.app.after(0, lambda: self.show_templates(filenames))
+                self.app.after(0, lambda: self.show_templates(filenames))
         except Exception as e:
             self.app.after(0, lambda:messagebox.showerror("HATA: ", str(e)))
 
@@ -320,7 +325,9 @@ class UploadTab:
 
         self.templates_ready = True
         # self.relayout_gallery()
-        # self.update_visible()
+        self.visible_range = (-1,-1)
+        self.app.after(200, self.update_visible)
+        self.app.after(600, self.update_visible)
 
     def toggle_select(self, frame):
         frame.selected = not frame.selected
@@ -369,13 +376,12 @@ class UploadTab:
             for i, frame in enumerate(self.template_cards):
                 if not frame.winfo_exists():continue
 
-                if start <= i < end:
-                    r = i // self.COLS # self._current_cols
-                    c = i % self.COLS # self._current_cols
-                    frame.grid(row=r, column=c, padx=15, pady=15)
+                r = i // self.COLS # self._current_cols
+                c = i % self.COLS # self._current_cols
+                frame.grid(row=r, column=c, padx=15, pady=15)
 
-                    if not frame.loaded:
-                        self.load_image_async(frame)
+                if start <= i < end and not frame.loaded:
+                    self.load_image_async(frame)
                 else:
                     pass
         
@@ -388,9 +394,9 @@ class UploadTab:
         y2 = y1 + self.canvas.winfo_height()
 
         # row_h     = self.CARD_HEIGHT + self.CARD_PAD
-        row_h = 180
+        row_h = 200
         start_row = max(0, int(y1 // row_h) - 1)
-        end_row   = int(y2 // row_h) +2
+        end_row   = int(y2 // row_h) +4
 
         start = start_row * self.COLS # self._current_cols
         end   = end_row * self.COLS # self._current_cols
