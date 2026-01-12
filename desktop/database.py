@@ -59,7 +59,36 @@ class SupabaseDB(object):
 
     # fetch işleminde her sefer ui donuyor
     def fetch_templates_fromdb(self, folder="thumbs"):
-        response = (
+        all_files = []
+        offset    = 0
+        limit     = 100
+        
+        bucket = self.supabase.storage.from_("foto_model")
+
+        while True:
+            batch = bucket.list(
+                path=f"templates/{folder}",
+                options={
+                    "limit": limit,
+                    "offset": offset
+                }
+            )
+
+            if not batch:
+                break
+
+            all_files.extend(batch)
+            if len(batch) < limit:
+                break
+
+            offset += limit
+
+        return [
+            file for file in all_files
+            if not file["name"].startswith(".")
+        ]
+
+        """response = (
             self.supabase
             .storage
             .from_("foto_model")
@@ -69,7 +98,7 @@ class SupabaseDB(object):
         return [
             res for res in response
             if not res["name"].startswith(".")
-        ]
+        ]"""
     
     def download_templates_fromdb(self, filename, folder="thumbs"):
         response = (

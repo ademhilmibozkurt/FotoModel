@@ -278,11 +278,9 @@ class UploadTab:
         self.app.after(0, self.app.spinner.show_spinner)
         self.switch_button(self.btnSubmit, "disabled")
         try:
-            with self.download_semaphore:   
-                templates = self.supabase.fetch_templates_fromdb(folder)
-                filenames = [t["name"] for t in templates]
-
-                self.app.after(0, lambda: self.show_templates(filenames))
+            templates = self.supabase.fetch_templates_fromdb(folder)
+            filenames = [t["name"] for t in templates]
+            self.app.after(0, lambda: self.show_templates(filenames))
         except Exception as e:
             self.app.after(0, lambda:messagebox.showerror("HATA: ", str(e)))
 
@@ -326,8 +324,7 @@ class UploadTab:
         self.templates_ready = True
         # self.relayout_gallery()
         self.visible_range = (-1,-1)
-        self.app.after(200, self.update_visible)
-        self.app.after(600, self.update_visible)
+        self.app.after(100, self.update_visible)
 
     def toggle_select(self, frame):
         frame.selected = not frame.selected
