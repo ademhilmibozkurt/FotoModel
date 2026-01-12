@@ -24,7 +24,7 @@ class UploadTab:
 
         self.CARD_WIDTH  = 268
         self.CARD_HEIGHT = 151
-        self.COLS = 4
+        self.COLS = 5
 
         # responsive columns
         # self.CARD_PAD    = 25
@@ -54,6 +54,8 @@ class UploadTab:
 
         self.create_ui()
 
+        self.COLS, self.CARD_WIDTH, self.CARD_HEIGHT = app.set_sizes()
+
     # for calling render_gallery() multiple times
     """def on_window_resize(self, event):
         if not self.templates_ready or event.widget != self.app:
@@ -63,6 +65,11 @@ class UploadTab:
             self.app.after_cancel(self._resize_job)
 
         self._resize_job = self.app.after(80, self.relayout_gallery)"""
+    
+    def set_sizes(self, cols, width, height):
+        self.COLS        = cols
+        self.CARD_WIDTH  = width
+        self.CARD_HEIGHT = height
 
     def create_ui(self):
         # top of the upload tab
@@ -186,7 +193,7 @@ class UploadTab:
                     text=os.path.basename(path),
                     font=("Segoe UI", 11),
                     bg_color="#111827",
-                    wraplength=258,
+                    wraplength=self.CARD_WIDTH -10,
                     justify="center",
                     anchor="center"
                 ).pack(padx=5, pady=(2, 6))
@@ -393,7 +400,7 @@ class UploadTab:
         # row_h     = self.CARD_HEIGHT + self.CARD_PAD
         row_h = 200
         start_row = max(0, int(y1 // row_h) - 1)
-        end_row   = int(y2 // row_h) +4
+        end_row   = int(y2 // row_h) + 4
 
         start = start_row * self.COLS # self._current_cols
         end   = end_row * self.COLS # self._current_cols

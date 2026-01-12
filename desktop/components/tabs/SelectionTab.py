@@ -19,6 +19,8 @@ class SelectionTab:
         self.CARD_WIDTH = 268
         self.CARD_HEIGHT = 151
         self.COLS = 5
+        self.window_width = 1600
+        self.window_height = 900
 
         self.search_var = tk.StringVar()
         self.tree = None
@@ -30,6 +32,8 @@ class SelectionTab:
         self.create_ui()
 
         self.download_semaphore = Semaphore(3)
+    
+        #self.COLS, self.CARD_WIDTH, self.CARD_HEIGHT = app.set_sizes()
 
     def create_ui(self):
         search_frame = ctk.CTkFrame(self.tab)
@@ -178,8 +182,8 @@ class SelectionTab:
         self.window = ctk.CTkToplevel(self.app)
         self.window.title("Seçilen Fotoğraflar")
         
-        #self.window.geometry("1600x1000")
-        self.app.center_window(1600, 1000, self.window)
+        self.app.center_window(self.window_width, self.window_height, self.window)
+        self.COLS = self.app.resize_window(self.COLS, self.CARD_WIDTH, self.window)
 
         header = ctk.CTkFrame(self.window)
         header.pack(fill="x", padx=20, pady=10)
