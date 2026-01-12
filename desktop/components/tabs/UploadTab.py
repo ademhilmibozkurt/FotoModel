@@ -22,11 +22,11 @@ class UploadTab:
         self.image_paths = []
         self.template_widgets = []
 
+        self.CARD_WIDTH  = 268
+        self.CARD_HEIGHT = 151
         self.COLS = 4
 
         # responsive columns
-        # self.CARD_WIDTH  = 268
-        # self.CARD_HEIGHT = 151
         # self.CARD_PAD    = 25
         # self.MIN_COLS    = 2
         self.templates_ready = False
@@ -169,11 +169,11 @@ class UploadTab:
                 # caching - refactor code below
                 if path not in self.image_cache:
                     img = Image.open(path)
-                    img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
+                    img = ImageOps.contain(img, (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS)
                     self.image_cache[path] = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
                     
                 ctk_img = self.image_cache[path]
-                frame = ctk.CTkFrame(self.preview_frame, width=268, height=151, corner_radius=12)
+                frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
                 # content on the frame fixed
                 frame.grid_propagate(False)
 
@@ -301,8 +301,8 @@ class UploadTab:
         for filename in filenames:
             frame = ctk.CTkFrame(
                 self.preview_frame,
-                width=268,
-                height=151,
+                width=self.CARD_WIDTH,
+                height=self.CARD_HEIGHT,
                 corner_radius=12
             )
             frame.grid_propagate(False)
@@ -408,19 +408,20 @@ class UploadTab:
             self.app.after(0, lambda: self.attach_image(frame))
             return
             
-        def worker():
-            res = self.supabase.download_templates_fromdb(fn)
-            img = Image.open(BytesIO(res))
-            img = ImageOps.contain(img, (268, 151), Image.LANCZOS)
+        with self.download_semaphore:
+            def worker():
+                res = self.supabase.download_templates_fromdb(fn)
+                img = Image.open(BytesIO(res))
+                img = ImageOps.contain(img, (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS)
 
-            self.pil_cache[fn] = img
-            self.ctk_cache[fn] = ctk.CTkImage(
-                light_image=img,
-                dark_image=img,
-                size=(img.width, img.height)
-            )
+                self.pil_cache[fn] = img
+                self.ctk_cache[fn] = ctk.CTkImage(
+                    light_image=img,
+                    dark_image=img,
+                    size=(img.width, img.height)
+                )
 
-            self.app.after(0, lambda: self.attach_image(frame))
+                self.app.after(0, lambda: self.attach_image(frame))
 
         threading.Thread(target=worker, daemon=True).start()
 

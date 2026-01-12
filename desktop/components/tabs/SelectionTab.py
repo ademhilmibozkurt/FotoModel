@@ -16,6 +16,8 @@ class SelectionTab:
         self.tab = tab
         self.supabase = SupabaseDB()
 
+        self.CARD_WIDTH = 268
+        self.CARD_HEIGHT = 151
         self.COLS = 5
 
         self.search_var = tk.StringVar()
@@ -175,8 +177,9 @@ class SelectionTab:
     def open_selection_detail(self, record):
         self.window = ctk.CTkToplevel(self.app)
         self.window.title("Seçilen Fotoğraflar")
-        self.window.geometry("1600x1000")
-        self.window.resizable(False, False)
+        
+        #self.window.geometry("1600x1000")
+        self.app.center_window(1600, 1000, self.window)
 
         header = ctk.CTkFrame(self.window)
         header.pack(fill="x", padx=20, pady=10)
@@ -210,7 +213,7 @@ class SelectionTab:
     # for prevent fixed scroll to load new images
     def _create_placeholders(self):
         for i in range(len(self.selected_filenames)):
-            cell = ctk.CTkFrame(self.scroll, width=268, height=151)
+            cell = ctk.CTkFrame(self.scroll, width=self.CARD_WIDTH, height=self.CARD_HEIGHT)
             cell.grid_propagate(False)
 
             r = i // self.COLS
@@ -253,7 +256,7 @@ class SelectionTab:
         y2 = y1 + canvas.winfo_height()
 
         row_h = 171
-        # cols = max(1, canvas.winfo_width() // 268)
+        # cols = max(1, canvas.winfo_width() // self.CARD_WIDTH)
 
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) + 1
@@ -271,7 +274,7 @@ class SelectionTab:
                     return
                 
                 img = Image.open(BytesIO(img))
-                img = ImageOps.contain(img, (268,151), Image.LANCZOS)
+                img = ImageOps.contain(img, (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS)
                 ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=img.size)
 
                 self.app.after(0, lambda: self._attach_image(ctk_img, index))

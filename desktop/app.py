@@ -15,12 +15,25 @@ class FotoModelApp(ctk.CTk):
         super().__init__()
         # ---------------- Window ----------------
         self.title("Foto Model Studio")
-        self.geometry("1600x1000")
-        self.resizable(False, False)
+        
+        #self.geometry("1600x1000")
+        self.center_window(1600, 1000, self)
+        
         self.create_ui()
 
         # -------------- Spinner --------------
         self.spinner = Loader(self)
+
+    def center_window(self, width, height, window):
+        window.update_idletasks()
+        screen_w = window.winfo_screenwidth()
+        screen_h = window.winfo_screenheight()
+
+        x = (screen_w // 2) - (width // 2)
+        y = (screen_h // 2) - (height // 2)
+
+        window.resizable(False, False)
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     # ---------------- UI ----------------
     def create_ui(self):
