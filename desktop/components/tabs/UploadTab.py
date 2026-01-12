@@ -22,41 +22,44 @@ class UploadTab:
         self.image_paths = []
         self.template_widgets = []
 
+        self.COLS = 4
+
         # responsive columns
-        self.CARD_WIDTH  = 268
-        self.CARD_HEIGHT = 151
-        self.CARD_PAD    = 25
-        self.MIN_COLS    = 2
+        # self.CARD_WIDTH  = 268
+        # self.CARD_HEIGHT = 151
+        # self.CARD_PAD    = 25
+        # self.MIN_COLS    = 2
         self.templates_ready = False
 
         # for lazy loading
         self.gallery_mode = "None"
-        self._current_cols   = None
+        # self._current_cols   = None
         self.template_cards = []
         self.pil_cache = {}
         self.ctk_cache = {}
         self.visible_range = (0, 0)
-        self.MAX_VISIBLE = 40
-        self.BUFFER = 12
+        
+        # self.MAX_VISIBLE = 40
+        # self.BUFFER = 12
 
         # limit the number of parallel operations
         self.UPLOAD_LIMIT = 3
         self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
 
         # resize renderer binding  
-        self.app.bind("<Configure>", self.on_window_resize)
+        # self.app.bind("<Configure>", self.on_window_resize)
 
         self.create_ui()
 
     # for calling render_gallery() multiple times
-    def on_window_resize(self, event):
+    """def on_window_resize(self, event):
         if not self.templates_ready or event.widget != self.app:
             return
 
         if hasattr(self, "_resize_job"):
             self.app.after_cancel(self._resize_job)
 
-        self._resize_job = self.app.after(80, self.relayout_gallery)
+        self._resize_job = self.app.after(80, self.relayout_gallery)"""
 
     def create_ui(self):
         # top of the upload tab
@@ -88,14 +91,6 @@ class UploadTab:
         self.preview_frame = ctk.CTkFrame(self.canvas)
         self.canvas.create_window((0, 0), window=self.preview_frame, anchor="nw")
 
-        self.preview_frame.bind("<Configure>",lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-
-        # scroll with mouse
-        def _on_mousewheel(event):
-            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
         # submit, fetch and delete buttons
         bottom_bar = ctk.CTkFrame(self.tab, fg_color="transparent")
         bottom_bar.pack(fill="x", padx=15, pady=(5, 15))
@@ -119,6 +114,15 @@ class UploadTab:
         )
         self.btnDelete.pack(side="right")
         self.switch_button(self.btnDelete, "disabled")
+
+        # scroll with mouse
+        def _on_mousewheel(event):
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            self.update_visible()
+
+        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        self.canvas.bind("<Configure>", lambda e: self.update_visible())
+        self.preview_frame.bind("<Configure>",lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
 
     # button disabling for prevent conflicts
     def switch_button(self, btn, state="disabled"):
@@ -166,7 +170,7 @@ class UploadTab:
                     self.image_cache[path] = ctk.CTkImage(light_image=img, dark_image=img, size=(img.width, img.height))
                     
                 ctk_img = self.image_cache[path]
-                frame = ctk.CTkFrame(self.preview_frame, width=self.CARD_WIDTH, height=self.CARD_HEIGHT, corner_radius=12)
+                frame = ctk.CTkFrame(self.preview_frame, width=268, height=151, corner_radius=12)
                 # content on the frame fixed
                 frame.grid_propagate(False)
 
@@ -179,7 +183,7 @@ class UploadTab:
                     text=os.path.basename(path),
                     font=("Segoe UI", 11),
                     bg_color="#111827",
-                    wraplength=self.CARD_WIDTH - 10,
+                    wraplength=258,
                     justify="center",
                     anchor="center"
                 ).pack(padx=5, pady=(2, 6))
@@ -187,7 +191,8 @@ class UploadTab:
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.app.after(50, self.relayout_gallery)
+            # self.app.after(50, self.relayout_gallery)
+            self.update_visible()
         
             print(f"Yüklendi: {path}")
 
@@ -293,8 +298,8 @@ class UploadTab:
         for filename in filenames:
             frame = ctk.CTkFrame(
                 self.preview_frame,
-                width=self.CARD_WIDTH,
-                height=self.CARD_HEIGHT,
+                width=268,
+                height=151,
                 corner_radius=12
             )
             frame.grid_propagate(False)
@@ -314,13 +319,14 @@ class UploadTab:
             self.template_cards.append(frame)
 
         self.templates_ready = True
-        self.relayout_gallery()
+        # self.relayout_gallery()
+        # self.update_visible()
 
     def toggle_select(self, frame):
         frame.selected = not frame.selected
         frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
 
-    def relayout_gallery(self):
+    """def relayout_gallery(self):
         if not self.templates_ready:
             return 
         
@@ -336,10 +342,10 @@ class UploadTab:
 
         self._current_cols = cols
         self.visible_range = (-1, -1)
-        self.update_visible()
+        self.update_visible()"""
 
     def update_visible(self):
-        if not self.templates_ready or not self._current_cols:
+        if not self.templates_ready: # or not self._current_cols:
             return
         
         # upload mode -> show everything
@@ -347,8 +353,8 @@ class UploadTab:
             for i, frame in enumerate(self.template_cards):
                 if not frame.winfo_exists():continue
 
-                r = i // self._current_cols
-                c = i % self._current_cols
+                r = i // self.COLS # self._current_cols
+                c = i % self.COLS # self._current_cols
                 frame.grid(row=r, column=c, padx=15, pady=15)
             return
 
@@ -364,15 +370,14 @@ class UploadTab:
                 if not frame.winfo_exists():continue
 
                 if start <= i < end:
-                    r = i // self._current_cols
-                    c = i % self._current_cols
+                    r = i // self.COLS # self._current_cols
+                    c = i % self.COLS # self._current_cols
                     frame.grid(row=r, column=c, padx=15, pady=15)
 
                     if not frame.loaded:
                         self.load_image_async(frame)
-
                 else:
-                    frame.grid_forget()
+                    pass
         
         self.preview_frame.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -382,12 +387,13 @@ class UploadTab:
         y1 = self.canvas.canvasy(0)
         y2 = y1 + self.canvas.winfo_height()
 
-        row_h     = self.CARD_HEIGHT + self.CARD_PAD
+        # row_h     = self.CARD_HEIGHT + self.CARD_PAD
+        row_h = 180
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) +2
 
-        start = start_row * self._current_cols
-        end   = end_row * self._current_cols
+        start = start_row * self.COLS # self._current_cols
+        end   = end_row * self.COLS # self._current_cols
 
         return start, min(end, len(self.template_cards))
     

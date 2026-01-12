@@ -15,7 +15,8 @@ class FotoModelApp(ctk.CTk):
         super().__init__()
         # ---------------- Window ----------------
         self.title("Foto Model Studio")
-        self.geometry("1400x800")
+        self.geometry("1600x1000")
+        self.resizable(False, False)
         self.create_ui()
 
         # -------------- Spinner --------------
@@ -23,17 +24,17 @@ class FotoModelApp(ctk.CTk):
 
     # ---------------- UI ----------------
     def create_ui(self):
-        self.create_header()
+        # self.create_header()
         self.create_tabs()
         self.create_log_tab()
 
     # ---------------- Header ----------------
-    def create_header(self):
+    """def create_header(self):
         header = ctk.CTkFrame(self, height=100, corner_radius=0)
         header.pack(fill="x")
 
         if os.path.exists("logo.jpg"):
-            logo_img = Image.open("logo.jpg").resize((70, 70))
+            logo_img = Image.open("logo.jpg").resize((100, 100))
             self.logo = ctk.CTkImage(logo_img)
 
             ctk.CTkLabel(
@@ -46,7 +47,7 @@ class FotoModelApp(ctk.CTk):
             header,
             text="Foto Model Stüdyo",
             font=ctk.CTkFont(size=22, weight="bold")
-            ).pack(side="left", padx=10)
+            ).pack(side="left", padx=10)"""
 
     # ---------------- Tabs ----------------
     def create_tabs(self):

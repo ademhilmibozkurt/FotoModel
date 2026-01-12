@@ -10,7 +10,6 @@ from threading import Semaphore
 
 from database import SupabaseDB
 
-# !!!!! lazy loading şart büyük fotolar çok geç yükleniyor
 class SelectionTab:
     def __init__(self, app, tab):
         self.app = app
