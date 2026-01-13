@@ -22,13 +22,11 @@ class UploadTab:
         self.image_paths = []
         self.template_widgets = []
 
-        self.CARD_WIDTH  = 268
-        self.CARD_HEIGHT = 151
-        self.COLS = 5
-
-        # responsive columns
-        # self.CARD_PAD    = 25
-        # self.MIN_COLS    = 2
+        self.CARD_WIDTH  = 299
+        self.CARD_HEIGHT = 168
+        self.CARD_PAD    = 20
+        self.COLS = 4
+        
         self.templates_ready = False
 
         # for lazy loading
@@ -39,22 +37,15 @@ class UploadTab:
         self.ctk_cache = {}
         self.visible_range = (0, 0)
         
-        # self.MAX_VISIBLE = 40
-        # self.BUFFER = 12
-
         # limit the number of parallel operations
         self.UPLOAD_LIMIT = 3
         self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
 
-        self.DOWNLOAD_LIMIT = 4
+        self.DOWNLOAD_LIMIT = 10
         self.download_semaphore = threading.Semaphore(self.DOWNLOAD_LIMIT)
-
-        # resize renderer binding  
-        # self.app.bind("<Configure>", self.on_window_resize)
+        self.download_executor = ThreadPoolExecutor(max_workers=10)
 
         self.create_ui()
-
-        self.COLS, self.CARD_WIDTH, self.CARD_HEIGHT = app.set_sizes()
 
     # for calling render_gallery() multiple times
     """def on_window_resize(self, event):
@@ -65,11 +56,6 @@ class UploadTab:
             self.app.after_cancel(self._resize_job)
 
         self._resize_job = self.app.after(80, self.relayout_gallery)"""
-    
-    def set_sizes(self, cols, width, height):
-        self.COLS        = cols
-        self.CARD_WIDTH  = width
-        self.CARD_HEIGHT = height
 
     def create_ui(self):
         # top of the upload tab
@@ -366,7 +352,7 @@ class UploadTab:
 
                 r = i // self.COLS # self._current_cols
                 c = i % self.COLS # self._current_cols
-                frame.grid(row=r, column=c, padx=15, pady=15)
+                frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
             return
 
         # fetch mode -> lazy loading
@@ -382,7 +368,7 @@ class UploadTab:
 
                 r = i // self.COLS # self._current_cols
                 c = i % self.COLS # self._current_cols
-                frame.grid(row=r, column=c, padx=15, pady=15)
+                frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
 
                 if start <= i < end and not frame.loaded:
                     self.load_image_async(frame)
@@ -397,8 +383,7 @@ class UploadTab:
         y1 = self.canvas.canvasy(0)
         y2 = y1 + self.canvas.winfo_height()
 
-        # row_h     = self.CARD_HEIGHT + self.CARD_PAD
-        row_h = 200
+        row_h     = self.CARD_HEIGHT + self.CARD_PAD
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) + 4
 
@@ -415,22 +400,23 @@ class UploadTab:
             self.app.after(0, lambda: self.attach_image(frame))
             return
             
-        with self.download_semaphore:
-            def worker():
-                res = self.supabase.download_templates_fromdb(fn)
-                img = Image.open(BytesIO(res))
-                img = ImageOps.contain(img, (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS)
+        
+        def worker():
+            res = self.supabase.download_templates_fromdb(fn)
+            img = Image.open(BytesIO(res))
+            img = ImageOps.contain(img, (self.CARD_WIDTH, self.CARD_HEIGHT), Image.LANCZOS)
 
-                self.pil_cache[fn] = img
-                self.ctk_cache[fn] = ctk.CTkImage(
-                    light_image=img,
-                    dark_image=img,
-                    size=(img.width, img.height)
-                )
+            self.pil_cache[fn] = img
+            self.ctk_cache[fn] = ctk.CTkImage(
+                light_image=img,
+                dark_image=img,
+                size=(img.width, img.height)
+            )
 
-                self.app.after(0, lambda: self.attach_image(frame))
+            self.app.after(0, lambda: self.attach_image(frame))
 
-        threading.Thread(target=worker, daemon=True).start()
+        self.download_executor.submit(worker)
+        # threading.Thread(target=worker, daemon=True).start()
 
     # attach image to label
     def attach_image(self, frame):
@@ -445,7 +431,7 @@ class UploadTab:
 
         lbl       = ctk.CTkLabel(frame, image=img, text="")
         lbl.image = img
-        lbl.pack(padx=10, pady=(10,5))
+        lbl.pack(padx=15, pady=(10,5))
 
         lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
 

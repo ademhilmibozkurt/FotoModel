@@ -13,19 +13,12 @@ ctk.set_default_color_theme("blue")
 class FotoModelApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
-        self.CARD_WIDTH  = 268
-        self.CARD_HEIGHT = 151
-        self.COLS = 5
         self.window_width  = 1600
         self.window_height = 900
 
         # ---------------- Window ----------------
         self.title("Foto Model Studio")
-        
-        #self.geometry("1600x1000")
         self.center_window(self.window_width, self.window_height, self)
-        self.COLS = self.resize_window(self.COLS, self.CARD_WIDTH, self)
 
         self.create_ui()
 
@@ -42,20 +35,6 @@ class FotoModelApp(ctk.CTk):
 
         window.resizable(False, False)
         window.geometry(f"{width}x{height}+{x}+{y}")
-
-    def set_sizes(self):
-        return self.COLS, self.CARD_WIDTH, self.CARD_HEIGHT
-
-    def resize_window(self, cols, card_width, window):
-        content_width = cols * card_width + 260
-        window_width  = window.winfo_width()
-
-        if content_width > window_width:
-            print(content_width, window_width)
-            cols = window_width // card_width
-            print(cols)
-
-        return cols
 
     # ---------------- UI ----------------
     def create_ui(self):

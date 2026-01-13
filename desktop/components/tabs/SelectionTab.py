@@ -16,9 +16,9 @@ class SelectionTab:
         self.tab = tab
         self.supabase = SupabaseDB()
 
-        self.CARD_WIDTH = 268
-        self.CARD_HEIGHT = 151
-        self.COLS = 5
+        self.CARD_WIDTH = 384
+        self.CARD_HEIGHT = 216
+        self.COLS = 3
         self.window_width = 1600
         self.window_height = 900
 
@@ -32,8 +32,6 @@ class SelectionTab:
         self.create_ui()
 
         self.download_semaphore = Semaphore(3)
-    
-        #self.COLS, self.CARD_WIDTH, self.CARD_HEIGHT = app.set_sizes()
 
     def create_ui(self):
         search_frame = ctk.CTkFrame(self.tab)
@@ -183,7 +181,6 @@ class SelectionTab:
         self.window.title("Seçilen Fotoğraflar")
         
         self.app.center_window(self.window_width, self.window_height, self.window)
-        self.COLS = self.app.resize_window(self.COLS, self.CARD_WIDTH, self.window)
 
         header = ctk.CTkFrame(self.window)
         header.pack(fill="x", padx=20, pady=10)
@@ -205,9 +202,6 @@ class SelectionTab:
         self.grid_cells = [None] * len(self.selected_filenames)
         self.placeholder_frames = []
 
-        # for responsive screen size
-        # self.window.bind("<Configure>", self.on_resize)
-
         # lazy loading binding
         self.scroll._parent_canvas.bind("<Configure>", lambda e: self.load_visible_images())
 
@@ -222,18 +216,10 @@ class SelectionTab:
 
             r = i // self.COLS
             c = i % self.COLS
-            cell.grid(row=r, column=c, padx=10, pady=10)
-
+            cell.grid(row=r, column=c, padx=10, pady=10, sticky="n")
+            cell.grid_columnconfigure(tuple(range(self.COLS)), weight=1)
+            
             self.placeholder_frames.append(cell)
-            # self.grid_cells.append(None)
-
-        # self.reflow_grid()
-
-    """def on_resize(self, event):
-        if self.resize_job:
-            self.app.after_cancel(self.resize_job)
-
-        self.resize_job = self.app.after(80, self.reflow_grid)"""
     
     def load_visible_images(self):
         if not self.scroll.winfo_exists():
@@ -259,8 +245,7 @@ class SelectionTab:
         y1 = canvas.canvasy(0)
         y2 = y1 + canvas.winfo_height()
 
-        row_h = 171
-        # cols = max(1, canvas.winfo_width() // self.CARD_WIDTH)
+        row_h = self.CARD_HEIGHT + 20
 
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) + 1
@@ -298,23 +283,3 @@ class SelectionTab:
         lbl  = ctk.CTkLabel(placeholder, image=ctk_img, text="")
         lbl.image = ctk_img
         lbl.pack()
-        
-        # self.grid_cells.append(placeholder)
-    
-    """def reflow_grid(self):
-        if not self.grid_cells:
-            return
-
-        container_width = self.scroll.winfo_width()
-        if container_width <= 1:
-            self.app.after(50, self.reflow_grid)
-            return
-
-        photo_size = 288
-        cols = max(1, container_width // photo_size)
-
-        for index, cell in enumerate(self.grid_cells):
-            r = index // cols
-            c = index % cols
-
-            cell.grid(row=r, column=c, padx=10, pady=10)"""
