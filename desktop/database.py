@@ -88,18 +88,6 @@ class SupabaseDB(object):
             if not file["name"].startswith(".")
         ]
 
-        """response = (
-            self.supabase
-            .storage
-            .from_("foto_model")
-            .list(f"templates/{folder}")
-        )
-        
-        return [
-            res for res in response
-            if not res["name"].startswith(".")
-        ]"""
-    
     def download_templates_fromdb(self, filename, folder="thumbs"):
         response = (
             self.supabase

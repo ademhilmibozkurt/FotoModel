@@ -26,7 +26,7 @@ class UploadTab:
         self.CARD_HEIGHT = 168
         self.CARD_PAD    = 20
         self.COLS = 4
-        
+
         self.templates_ready = False
 
         # for lazy loading
@@ -45,17 +45,10 @@ class UploadTab:
         self.download_semaphore = threading.Semaphore(self.DOWNLOAD_LIMIT)
         self.download_executor = ThreadPoolExecutor(max_workers=10)
 
+        self.drag_start = None
+        self.drag_rect  = None
+
         self.create_ui()
-
-    # for calling render_gallery() multiple times
-    """def on_window_resize(self, event):
-        if not self.templates_ready or event.widget != self.app:
-            return
-
-        if hasattr(self, "_resize_job"):
-            self.app.after_cancel(self._resize_job)
-
-        self._resize_job = self.app.after(80, self.relayout_gallery)"""
 
     def create_ui(self):
         # top of the upload tab
@@ -79,7 +72,7 @@ class UploadTab:
         content_frame = ctk.CTkFrame(self.tab)
         content_frame.pack(fill="both", expand=True, padx=15, pady=10)
 
-        self.canvas = tk.Canvas(content_frame, bg="#1f2937", highlightthickness=0)
+        self.canvas = tk.Canvas(content_frame, bg="#2b2b2b", highlightthickness=0)
         self.canvas.pack(side="left", fill="both", expand=True)
 
         scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=self.canvas.yview)
@@ -309,7 +302,7 @@ class UploadTab:
 
             frame.img_label = lbl
 
-            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
+            frame.bind("<Button-1>", lambda e, f=frame: self.toggle_select_click(e, f))
             lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
 
             self.template_cards.append(frame)
@@ -319,27 +312,74 @@ class UploadTab:
         self.visible_range = (-1,-1)
         self.app.after(100, self.update_visible)
 
+        self.preview_frame.bind("<Button-1>", self.start_drag_select)
+        self.preview_frame.bind("<B1-Motion>", self.drag_select)
+        self.preview_frame.bind("<ButtonRelease-1>", self.end_drag_select)
+
+    def toggle_select_click(self, event, frame):
+        # if dragging ignore click
+        if self.drag_start:
+            return
+        self.toggle_select(frame)
+
     def toggle_select(self, frame):
         frame.selected = not frame.selected
         frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
 
-    """def relayout_gallery(self):
-        if not self.templates_ready:
-            return 
-        
-        if not self.preview_frame.winfo_exists():
+    # multiple select with drag select
+    def start_drag_select(self, event):
+        self.drag_start = (event.x, event.y)
+
+        if self.drag_rect:
+            self.drag_rect.destroy()
+
+        self.drag_rect = ctk.CTkFrame(
+            self.preview_frame,
+            fg_color="",
+            border_color="#3b82f6",
+            border_width=2
+        )
+
+        self.drag_rect.place(x=event.x, y=event.y, width=1, height=1)
+
+    def drag_select(self, event):
+        if not self.drag_start:
             return
         
-        width = self.preview_frame.winfo_width()
-        if width <= 1:
-            self.app.after(50, self.relayout_gallery)
-            return
+        x0, y0 = self.drag_start
+        x1, y1 = event.x, event.y
 
-        cols = max(self.MIN_COLS, width // (self.CARD_WIDTH + self.CARD_PAD))
+        x = min(x0, y0)
+        y = min(y0, y1)
+        w = abs(x1 - x0)
+        h = abs(y1 - y0)
 
-        self._current_cols = cols
-        self.visible_range = (-1, -1)
-        self.update_visible()"""
+        self.drag_rect.place(x=x, y=y, width=w, height=h)
+
+        # selection calculation
+        for frame in self.template_cards:
+            fx = frame.winfo_x()
+            fy = frame.winfo_y()
+            fw = frame.winfo_width()
+            fh = frame.winfo_height()
+
+            intersects = not(
+                fx + fw < x or
+                fx > x + w or
+                fy + fh < y or
+                fy > y + h
+            )
+
+            if intersects and not frame.selected:
+                frame.selected = True
+                frame.configure(borde_color="#3b82f6", border_width=2)
+
+    # clear drag after selection
+    def end_drag_select(self, event):
+        self.drag_start = None
+        if self.drag_rect:
+            self.drag_rect.destroy()
+            self.drag_rect = None
 
     def update_visible(self):
         if not self.templates_ready: # or not self._current_cols:

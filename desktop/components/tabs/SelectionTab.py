@@ -16,8 +16,9 @@ class SelectionTab:
         self.tab = tab
         self.supabase = SupabaseDB()
 
-        self.CARD_WIDTH = 384
+        self.CARD_WIDTH  = 384
         self.CARD_HEIGHT = 216
+        self.CARD_PAD    = 20
         self.COLS = 3
         self.window_width = 1600
         self.window_height = 900
@@ -199,9 +200,11 @@ class SelectionTab:
         self.selected_filenames = selected
         self.loaded_indices     = set()
 
+        print(len(self.selected_filenames))
         self.grid_cells = [None] * len(self.selected_filenames)
         self.placeholder_frames = []
 
+        # !!!!!! fotolar gelmiyor !!!!!!
         # lazy loading binding
         self.scroll._parent_canvas.bind("<Configure>", lambda e: self.load_visible_images())
 
@@ -216,8 +219,7 @@ class SelectionTab:
 
             r = i // self.COLS
             c = i % self.COLS
-            cell.grid(row=r, column=c, padx=10, pady=10, sticky="n")
-            cell.grid_columnconfigure(tuple(range(self.COLS)), weight=1)
+            cell.grid(row=r, column=c, padx=self.CARD_PAD+20, pady=self.CARD_PAD, sticky="n")
             
             self.placeholder_frames.append(cell)
     
@@ -241,11 +243,10 @@ class SelectionTab:
 
     def get_visible_indices(self):
         canvas = self.scroll._parent_canvas
-
         y1 = canvas.canvasy(0)
         y2 = y1 + canvas.winfo_height()
 
-        row_h = self.CARD_HEIGHT + 20
+        row_h = self.CARD_HEIGHT + self.CARD_PAD
 
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) + 1
@@ -282,4 +283,4 @@ class SelectionTab:
 
         lbl  = ctk.CTkLabel(placeholder, image=ctk_img, text="")
         lbl.image = ctk_img
-        lbl.pack()
+        lbl.pack(expand=True, fill="both")
