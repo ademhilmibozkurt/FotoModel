@@ -335,12 +335,15 @@ class UploadTab:
 
         self.drag_rect = ctk.CTkFrame(
             self.preview_frame,
+            width=1,
+            height=1,
             fg_color="",
             border_color="#3b82f6",
             border_width=2
         )
 
-        self.drag_rect.place(x=event.x, y=event.y, width=1, height=1)
+        self.drag_rect.place(x=event.x, y=event.y)
+        self.drag_rect.configure(width=1, height=1)
 
     def drag_select(self, event):
         if not self.drag_start:
@@ -354,7 +357,8 @@ class UploadTab:
         w = abs(x1 - x0)
         h = abs(y1 - y0)
 
-        self.drag_rect.place(x=x, y=y, width=w, height=h)
+        self.drag_rect.place(x=x, y=y)
+        self.drag_rect.configure(width=w, height=h)
 
         # selection calculation
         for frame in self.template_cards:
@@ -372,7 +376,7 @@ class UploadTab:
 
             if intersects and not frame.selected:
                 frame.selected = True
-                frame.configure(borde_color="#3b82f6", border_width=2)
+                frame.configure(border_color="#3b82f6", border_width=2)
 
     # clear drag after selection
     def end_drag_select(self, event):
