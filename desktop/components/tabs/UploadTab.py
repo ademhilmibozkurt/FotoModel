@@ -45,8 +45,9 @@ class UploadTab:
         self.download_semaphore = threading.Semaphore(self.DOWNLOAD_LIMIT)
         self.download_executor = ThreadPoolExecutor(max_workers=10)
 
-        self.drag_start = None
-        self.drag_rect  = None
+        self.drag_rect_id = None
+        self.drag_start_x = 0
+        self.drag_start_y = 0
 
         self.create_ui()
 
@@ -312,13 +313,13 @@ class UploadTab:
         self.visible_range = (-1,-1)
         self.app.after(100, self.update_visible)
 
-        self.preview_frame.bind("<Button-1>", self.start_drag_select)
+        self.preview_frame.bind("<ButtonPress-1>", self.start_drag)
         self.preview_frame.bind("<B1-Motion>", self.drag_select)
-        self.preview_frame.bind("<ButtonRelease-1>", self.end_drag_select)
+        self.preview_frame.bind("<ButtonRelease-1>", self.end_drag)
 
     def toggle_select_click(self, event, frame):
         # if dragging ignore click
-        if self.drag_start:
+        if self.drag_start_x:
             return
         self.toggle_select(frame)
 
@@ -327,63 +328,63 @@ class UploadTab:
         frame.configure(border_color="#3b82f6" if frame.selected else "#111827", border_width=2)
 
     # multiple select with drag select
-    def start_drag_select(self, event):
-        self.drag_start = (event.x, event.y)
+    def start_drag(self, event):
+        self.drag_start_x = self.canvas.canvasx(event.x)
+        self.drag_start_y = self.canvas.canvasy(event.y)
 
-        if self.drag_rect:
-            self.drag_rect.destroy()
+        if self.drag_rect_id:
+            self.canvas.delete(self.drag_rect_id)
 
-        self.drag_rect = ctk.CTkFrame(
-            self.preview_frame,
-            width=1,
-            height=1,
-            fg_color="",
-            border_color="#3b82f6",
-            border_width=2
+        self.drag_rect_id = self.canvas.create_rectangle(
+            self.drag_start_x,
+            self.drag_start_y,
+            self.drag_start_x,
+            self.drag_start_y,
+            outline="#3b82f6",
+            width=2
+        )
+        
+    def drag_select(self, event):
+        cur_x = self.canvas.canvasx(event.x)
+        cur_y = self.canvas.canvasy(event.y)
+
+        self.canvas.coords(
+            self.drag_rect_id,
+            self.drag_start_x,
+            self.drag_start_y,
+            cur_x,
+            cur_y
         )
 
-        self.drag_rect.place(x=event.x, y=event.y)
-        self.drag_rect.configure(width=1, height=1)
-
-    def drag_select(self, event):
-        if not self.drag_start:
+    def end_drag(self, event):
+        if not self.drag_rect_id:
             return
         
-        x0, y0 = self.drag_start
-        x1, y1 = event.x, event.y
+        x1, y1, x2, y2 = self.canvas.coords(self.drag_rect_id)
+        self.canvas.delete(self.drag_rect_id)
+        self.drag_rect_id = None
 
-        x = min(x0, y0)
-        y = min(y0, y1)
-        w = abs(x1 - x0)
-        h = abs(y1 - y0)
+        self.select_frames_in_rect(x1, y1, x2, y2)
 
-        self.drag_rect.place(x=x, y=y)
-        self.drag_rect.configure(width=w, height=h)
+    def select_frames_in_rect(self, x1, y1, x2, y2):
+        x1, x2 = sorted((x1, x2))
+        y1, y2 = sorted((y1, y2))
 
-        # selection calculation
         for frame in self.template_cards:
-            fx = frame.winfo_x()
-            fy = frame.winfo_y()
+            if not frame.winfo_ismapped():
+                continue
+
+            fx = frame.winfo_rootx() - self.canvas.winfo_rootx()
+            fy = frame.winfo_rooty() - self.canvas.winfo_rooty()
             fw = frame.winfo_width()
             fh = frame.winfo_height()
 
-            intersects = not(
-                fx + fw < x or
-                fx > x + w or
-                fy + fh < y or
-                fy > y + h
-            )
-
-            if intersects and not frame.selected:
-                frame.selected = True
-                frame.configure(border_color="#3b82f6", border_width=2)
-
-    # clear drag after selection
-    def end_drag_select(self, event):
-        self.drag_start = None
-        if self.drag_rect:
-            self.drag_rect.destroy()
-            self.drag_rect = None
+            if(
+                fx < x2 and fx + fw > x1 and
+                fy < y2 and fy + fh > y1
+            ):
+                if not frame.selected:
+                    self.toggle_select(frame)
 
     def update_visible(self):
         if not self.templates_ready: # or not self._current_cols:
