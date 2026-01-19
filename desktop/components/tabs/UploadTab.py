@@ -45,10 +45,6 @@ class UploadTab:
         self.download_semaphore = threading.Semaphore(self.DOWNLOAD_LIMIT)
         self.download_executor = ThreadPoolExecutor(max_workers=10)
 
-        self.drag_rect_id = None
-        self.drag_start_x = 0
-        self.drag_start_y = 0
-
         self.create_ui()
 
     def create_ui(self):
@@ -277,6 +273,11 @@ class UploadTab:
 
     # download and show fetched list
     def show_templates(self, filenames):
+        self.dragging = False
+        self.drag_rect = None
+        self.drag_start_x = 0
+        self.drag_start_y = 0
+
         self.gallery_mode = "fetch"
 
         for widget in self.preview_frame.winfo_children():
@@ -329,53 +330,73 @@ class UploadTab:
 
     # multiple select with drag select
     def start_drag(self, event):
-        self.drag_start_x = self.canvas.canvasx(event.x)
-        self.drag_start_y = self.canvas.canvasy(event.y)
+        self.dragging = True
 
-        if self.drag_rect_id:
-            self.canvas.delete(self.drag_rect_id)
+        self.drag_start_x = event.x
+        self.drag_start_y = event.y
 
-        self.drag_rect_id = self.canvas.create_rectangle(
-            self.drag_start_x,
-            self.drag_start_y,
-            self.drag_start_x,
-            self.drag_start_y,
-            outline="#3b82f6",
-            width=2
+        if self.drag_rect is not None:
+            self.drag_rect.destroy()
+
+        self.drag_rect = ctk.CTkFrame(
+            self.preview_frame,
+            width=1,
+            height=1,
+            bg_color="transparent",
+            fg_color="transparent",
+            border_color="#3b82f6",
+            border_width=2
         )
         
-    def drag_select(self, event):
-        cur_x = self.canvas.canvasx(event.x)
-        cur_y = self.canvas.canvasy(event.y)
-
-        self.canvas.coords(
-            self.drag_rect_id,
-            self.drag_start_x,
-            self.drag_start_y,
-            cur_x,
-            cur_y
+        self.drag_rect.place(
+            x=self.drag_start_x,
+            y=self.drag_start_y
         )
+        self.drag_rect.configure(width=1, height=1)
 
-    def end_drag(self, event):
-        if not self.drag_rect_id:
+    def drag_select(self, event):
+        if not self.dragging or self.drag_rect is None:
             return
         
-        x1, y1, x2, y2 = self.canvas.coords(self.drag_rect_id)
-        self.canvas.delete(self.drag_rect_id)
-        self.drag_rect_id = None
+        x1 = self.drag_start_x
+        y1 = self.drag_start_y
+        x2 = event.x
+        y2 = event.y
+
+        x = min(x1, x2)
+        y = min(y1, y2)
+        w = abs(x2 - x1)
+        h = abs(y2 - y1)
+
+        self.drag_rect.place(x=x, y=y)
+        self.drag_rect.configure(width=w, height=h)
+
+    def end_drag(self, event):
+        if not self.dragging:
+            return
+
+        self.dragging = False
+
+        if self.drag_rect is None:
+            return
+
+        x1 = self.drag_rect.winfo_x()
+        y1 = self.drag_rect.winfo_y()
+        x2 = x1 + self.drag_rect.winfo_width()
+        y2 = y1 + self.drag_rect.winfo_height()
+
+        self.drag_rect.destroy()
+        self.drag_rect = None
 
         self.select_frames_in_rect(x1, y1, x2, y2)
 
     def select_frames_in_rect(self, x1, y1, x2, y2):
-        x1, x2 = sorted((x1, x2))
-        y1, y2 = sorted((y1, y2))
-
         for frame in self.template_cards:
             if not frame.winfo_ismapped():
                 continue
 
-            fx = frame.winfo_rootx() - self.canvas.winfo_rootx()
-            fy = frame.winfo_rooty() - self.canvas.winfo_rooty()
+            fx = frame.winfo_x()
+            fy = frame.winfo_y()
             fw = frame.winfo_width()
             fh = frame.winfo_height()
 
