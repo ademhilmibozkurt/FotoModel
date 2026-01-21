@@ -5,6 +5,7 @@ import customtkinter as ctk
 
 from components.tabs.Upload import UploadOps
 from components.tabs.Fetch import FetchOps
+from components.tabs.Delete import DeleteOps
 
 class UploadTab:
     def __init__(self, app, tab):
@@ -13,6 +14,7 @@ class UploadTab:
 
         self.uploadOps = UploadOps(self, app)
         self.fetchOps  = FetchOps(self, app)
+        self.deleteOps = DeleteOps(self.fetchOps, self, app)
 
         self.images   = []
         self.image_paths = []
@@ -84,7 +86,7 @@ class UploadTab:
             text="🗑 Seçilenleri Sil",
             fg_color="#B91C1C",
             hover_color="#7F1D1D",
-            command=self.fetchOps.delete_selected_templates
+            command=self.deleteOps.delete_selected_templates
         )
         self.btnDelete.pack(side="right")
         self.switch_button(self.btnDelete, "disabled")
