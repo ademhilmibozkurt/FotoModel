@@ -1,6 +1,4 @@
-import os
 import customtkinter as ctk
-from PIL import Image
 
 from components.Loader import Loader
 from components.tabs.SelectionTab import SelectionTab
