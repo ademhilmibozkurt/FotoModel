@@ -8,7 +8,7 @@ from io import BytesIO
 from PIL import Image, ImageOps
 from threading import Semaphore
 
-from database import SupabaseDB
+from infra.database import SupabaseDB
 
 class SelectionTab:
     def __init__(self, app, tab):
@@ -200,11 +200,9 @@ class SelectionTab:
         self.selected_filenames = selected
         self.loaded_indices     = set()
 
-        print(len(self.selected_filenames))
         self.grid_cells = [None] * len(self.selected_filenames)
         self.placeholder_frames = []
 
-        # !!!!!! fotolar gelmiyor !!!!!!
         # lazy loading binding
         self.scroll._parent_canvas.bind("<Configure>", lambda e: self.load_visible_images())
 

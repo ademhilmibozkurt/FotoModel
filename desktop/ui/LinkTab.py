@@ -2,7 +2,7 @@ import threading
 import tkinter as tk
 import customtkinter as ctk
 
-from database import SupabaseDB
+from infra.database import SupabaseDB
 
 class LinkTab:
     # ready link -> fcc684f0-97fc-4e4c-929a-dfeb3ccb1909

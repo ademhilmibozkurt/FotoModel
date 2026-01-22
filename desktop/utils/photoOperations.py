@@ -1,9 +1,3 @@
-# 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
-# veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
-# 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
-# 7. bütün kodu refactor. okuma, anlama ve bakımı kolaylaştır
-# # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
-
 from PIL import Image
 from io import BytesIO
 

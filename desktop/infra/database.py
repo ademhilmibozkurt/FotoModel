@@ -3,8 +3,9 @@ import json
 import requests
 from dotenv import load_dotenv
 from supabase import create_client
-from photoOperations import PhotoOperations
 from datetime import datetime
+
+from utils.photoOperations import PhotoOperations
 
 load_dotenv()
 

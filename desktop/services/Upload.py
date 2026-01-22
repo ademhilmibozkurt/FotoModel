@@ -5,7 +5,7 @@ from PIL import Image, ImageOps
 from tkinter import filedialog, messagebox
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from database import SupabaseDB
+from infra.database import SupabaseDB
 
 class UploadOps:
     def __init__(self, tab, app):

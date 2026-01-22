@@ -1,7 +1,7 @@
 import threading
 from tkinter import messagebox
 
-from database import SupabaseDB
+from infra.database import SupabaseDB
 
 class DeleteOps:    
     def __init__(self, fetch, tab, app):

@@ -5,7 +5,7 @@ from PIL import Image, ImageOps
 from tkinter import messagebox
 from concurrent.futures import ThreadPoolExecutor
 
-from database import SupabaseDB
+from infra.database import SupabaseDB
 
 class FetchOps:
     def __init__(self, tab, app):

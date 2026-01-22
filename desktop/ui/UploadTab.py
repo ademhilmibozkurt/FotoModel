@@ -3,9 +3,17 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 
-from components.tabs.Upload import UploadOps
-from components.tabs.Fetch import FetchOps
-from components.tabs.Delete import DeleteOps
+from services.Upload import UploadOps
+from services.Fetch import FetchOps
+from services.Delete import DeleteOps
+
+# 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
+# veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
+# 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
+# # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
+
+# fetch ve upload da ortak fonksiyonları başka sınıfa al
+# gallery_mode nasıl daha iyi hale getirilir?
 
 class UploadTab:
     def __init__(self, app, tab):
