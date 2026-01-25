@@ -1,9 +1,9 @@
 import customtkinter as ctk
 
 from ui.Loader import Loader
-from ui.SelectionTab import SelectionTab
-from ui.LinkTab import LinkTab
-from ui.UploadTab import UploadTab
+from ui.SelectionTab.SelectionTab import SelectionTab
+from ui.UploadTab.UploadTab import UploadTab
+from ui.LinkTab.LinkTab import LinkTab
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")

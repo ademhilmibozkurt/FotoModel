@@ -12,8 +12,6 @@ class UploadOps:
         self.tab = tab
         self.app = app
 
-        self.supabase = SupabaseDB()
-
         self.images   = []
         self.image_paths = []
 
@@ -34,6 +32,7 @@ class UploadOps:
         self.UPLOAD_LIMIT = 3
         self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
 
+    # ------------------- ui kısmını ayır -------------------
     # upload to ui 
     def upload_images_ui_wspinner(self):
         self.app.spinner.run_with_spinner(
@@ -103,6 +102,14 @@ class UploadOps:
         except Exception as e:
             print(f"HATA: {e}")
 
+    def _clear_preview(self):
+        # clean the screen for futher uploads
+        for widget in self.tab.preview_frame.winfo_children():
+            widget.destroy()
+        self.images.clear()
+        self.image_paths.clear()
+
+    # ------------------- bu kısım buranın işi üstü ui al --------------------------    
     # upload to db
     def upload_templates_todb(self):
         self.app.after(0, self.app.spinner.show_spinner)
@@ -115,13 +122,6 @@ class UploadOps:
         self.tab.switch_button(self.tab.btnGetTemplates, "normal")
         
         self.app.after(0, self._clear_preview)
-
-    def _clear_preview(self):
-        # clean the screen for futher uploads
-        for widget in self.tab.preview_frame.winfo_children():
-            widget.destroy()
-        self.images.clear()
-        self.image_paths.clear()
 
     def _upload_worker(self): 
         errors = self.upload_templates_parallel(self.image_paths)
@@ -160,6 +160,7 @@ class UploadOps:
         except Exception as e:
             return str(e)
         
+    # ----------------- !!! bu kısmı böl !!! --------------------------    
     def update_visible(self):
         if not self.templates_ready: # or not self._current_cols:
             return

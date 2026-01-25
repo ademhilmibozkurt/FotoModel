@@ -78,6 +78,7 @@ class SelectionTab:
         # is_completed state toggle
         self.tree.bind("<Button-1>", self.on_tree_single_click)
 
+    # ----------------- bu kısım service kısmı ayır -----------------------
     def load_supabase_data(self):
         try:
             self.app.spinner.run_with_spinner(
@@ -93,6 +94,7 @@ class SelectionTab:
         self.refresh_tree(self.all_data)
         print(f"Seçimler getirildi ({time.strftime('%H:%M:%S')})")
 
+    # ----------------------- bu kısım ui kısmı ayır -----------------------
     def refresh_tree(self, data):
         self.tree.delete(*self.tree.get_children())
 
@@ -221,6 +223,7 @@ class SelectionTab:
             
             self.placeholder_frames.append(cell)
     
+    # ------------ bu kısım fetch de ki fonksiyonlarla aynı ----------------------
     def load_visible_images(self):
         if not self.scroll.winfo_exists():
             return

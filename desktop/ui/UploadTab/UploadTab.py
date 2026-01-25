@@ -3,15 +3,16 @@ import tkinter as tk
 from tkinter import ttk
 import customtkinter as ctk
 
-from services.Upload import UploadOps
-from services.Fetch import FetchOps
-from services.Delete import DeleteOps
+from services.UploadOps import UploadOps
+from services.FetchOps import FetchOps
+from services.DeleteOps import DeleteOps
 
 # 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
 # veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
 # 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
 # # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
 
+# service fonksiyonlarını service ve ui ayır
 # fetch ve upload da ortak fonksiyonları başka sınıfa al
 # gallery_mode nasıl daha iyi hale getirilir?
 
@@ -23,26 +24,7 @@ class UploadTab:
         self.uploadOps = UploadOps(self, app)
         self.fetchOps  = FetchOps(self, app)
         self.deleteOps = DeleteOps(self.fetchOps, self, app)
-
-        self.images   = []
-        self.image_paths = []
-
-        self.CARD_WIDTH  = 299
-        self.CARD_HEIGHT = 168
-        self.CARD_PAD    = 20
-        self.COLS = 4
-
-        self.templates_ready = False
-
-        # for lazy loading
-        self.gallery_mode = "None"
-        # self._current_cols   = None
-        self.template_cards = []
         
-        # limit the number of parallel operations
-        self.UPLOAD_LIMIT = 3
-        self.upload_semaphore = threading.Semaphore(self.UPLOAD_LIMIT)
-
         self.create_ui()
 
     def create_ui(self):
