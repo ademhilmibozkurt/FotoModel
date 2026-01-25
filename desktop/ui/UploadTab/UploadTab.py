@@ -35,7 +35,7 @@ class UploadTab:
         ctk.CTkButton(
             top_bar,
             text="📂 Görselleri Yükle",
-            command=self.uploadOps.upload_images_ui_wspinner
+            command=self.uploadOps.upload_images
         ).pack(side="left", padx=(0,10))
 
         self.btnGetTemplates = ctk.CTkButton(
