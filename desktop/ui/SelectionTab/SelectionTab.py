@@ -10,11 +10,15 @@ from threading import Semaphore
 
 from infra.database import SupabaseDB
 
+from services.SelectionOps import SelectionOps
+
 class SelectionTab:
     def __init__(self, app, tab):
         self.app = app
         self.tab = tab
-        self.supabase = SupabaseDB()
+
+        self.supabase     = SupabaseDB()
+        self.selectionOps = SelectionOps(self)
 
         self.CARD_WIDTH  = 384
         self.CARD_HEIGHT = 216
@@ -40,7 +44,7 @@ class SelectionTab:
 
         ctk.CTkLabel(search_frame, text="Ara:").pack(side="left", padx=5)
 
-        self.search_var.trace_add("write", self.filter_tree)
+        self.search_var.trace_add("write", self.selectionOps.filter_tree)
 
         ctk.CTkEntry(
             search_frame,
@@ -73,10 +77,10 @@ class SelectionTab:
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
         # open new window with double click
-        self.tree.bind("<Double-1>", self.on_tree_double_click)
+        self.tree.bind("<Double-1>", self.selectionOps.on_tree_double_click)
 
         # is_completed state toggle
-        self.tree.bind("<Button-1>", self.on_tree_single_click)
+        self.tree.bind("<Button-1>", self.selectionOps.on_tree_single_click)
 
     # ----------------- bu kısım service kısmı ayır -----------------------
     def load_supabase_data(self):
@@ -91,11 +95,11 @@ class SelectionTab:
 
     def on_supabase_loaded(self, data):
         self.all_data = data
-        self.refresh_tree(self.all_data)
+        self.selectionOps.refresh_tree(self.all_data)
         print(f"Seçimler getirildi ({time.strftime('%H:%M:%S')})")
 
     # ----------------------- bu kısım ui kısmı ayır -----------------------
-    def refresh_tree(self, data):
+    """def refresh_tree(self, data):
         self.tree.delete(*self.tree.get_children())
 
         if not data:
@@ -176,7 +180,7 @@ class SelectionTab:
         if not record:
             return
 
-        self.open_selection_detail(record)
+        self.open_selection_detail(record)"""
         
     # selected templates window
     def open_selection_detail(self, record):
@@ -252,8 +256,8 @@ class SelectionTab:
         start_row = max(0, int(y1 // row_h) - 1)
         end_row   = int(y2 // row_h) + 1
 
-        start = start_row * self.COLS # cols
-        end   = end_row * self.COLS # cols
+        start = start_row * self.COLS
+        end   = end_row * self.COLS 
 
         return start, min(end, len(self.selected_filenames))
 
