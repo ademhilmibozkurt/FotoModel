@@ -10,7 +10,7 @@ class Upload:
         self.tab = tab 
         self.app = app
 
-        self.updata_visible = UpdateVisible(self)
+        self.update_visible = UpdateVisible(self, self.tab, self.app)
 
         self.images   = []
         self.image_paths = []
@@ -90,7 +90,7 @@ class Upload:
 
             self.templates_ready = True
             # self.app.after(50, self.relayout_gallery)
-            self.updata_visible.update_visible()
+            self.update_visible.update_visible()
         
             print(f"Yüklendi: {path}")
 

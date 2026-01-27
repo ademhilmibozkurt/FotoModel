@@ -1,18 +1,18 @@
 import customtkinter as ctk
-from io import BytesIO
-from PIL import Image, ImageOps
 from concurrent.futures import ThreadPoolExecutor
 
 from infra.database import SupabaseDB
 from ui.UpdateVisible import UpdateVisible
+from services.FetchOps import FetchOps
 
 class Fetch:
     def __init__(self, tab, app):
         self.tab = tab
         self.app = app
 
-        self.supabase       = SupabaseDB()
-        self.update_visible = UpdateVisible(self)
+        self.supabase = SupabaseDB()
+        self.update_visible = UpdateVisible(self, self.tab, self.app)
+        self.fetchOps = FetchOps(self, self.tab, self.app)
 
         self.CARD_WIDTH  = 299
         self.CARD_HEIGHT = 168
@@ -30,6 +30,12 @@ class Fetch:
         self.visible_range = (0, 0)
 
         self.download_executor = ThreadPoolExecutor(max_workers=10)
+
+    def fetch_templates(self):
+        self.fetchOps.fetch_templates()
+
+    def update(self):
+        self.app.after(100, self.update_visible.update_visible)
 
     # download and show fetched list
     def show_templates(self, filenames):

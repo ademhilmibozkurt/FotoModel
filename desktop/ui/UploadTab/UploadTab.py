@@ -4,10 +4,9 @@ from tkinter import ttk
 import customtkinter as ctk
 
 from services.UploadOps import UploadOps
-from services.FetchOps import FetchOps
 from services.DeleteOps import DeleteOps
 
-from ui.UploadTab.Upload import UpdateVisible
+from ui.UploadTab.Fetch import Fetch
 
 # 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
 # veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
@@ -22,11 +21,10 @@ class UploadTab:
         self.app = app
         self.tab = tab
 
-        self.uploadOps = UploadOps(self, app)
-        self.fetchOps  = FetchOps(self, app)
-        self.deleteOps = DeleteOps(self.fetchOps, self, app)
+        self.fetch = Fetch(self, self.app)
 
-        self.update_visible = UpdateVisible(self)
+        self.uploadOps = UploadOps(self, app)
+        self.deleteOps = DeleteOps(self.fetch, self, app)
         
         self.create_ui()
 
@@ -44,7 +42,7 @@ class UploadTab:
         self.btnGetTemplates = ctk.CTkButton(
             top_bar,
             text="Şablonları Getir",
-            command=self.fetchOps.fetch_templates
+            command=self.fetch.fetch_templates
         )
         self.btnGetTemplates.pack(side="left")
 
@@ -87,10 +85,10 @@ class UploadTab:
         # scroll with mouse
         def _on_mousewheel(event):
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            self.update_visible.update_visible()
+            self.fetch.update()
 
         self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        self.canvas.bind("<Configure>", lambda e: self.update_visible.update_visible())
+        self.canvas.bind("<Configure>", lambda e: self.fetch.update())
         self.preview_frame.bind("<Configure>",lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
 
     # button disabling for prevent conflicts
