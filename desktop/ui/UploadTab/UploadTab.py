@@ -7,12 +7,13 @@ from services.UploadOps import UploadOps
 from services.FetchOps import FetchOps
 from services.DeleteOps import DeleteOps
 
+from ui.UploadTab.Upload import UpdateVisible
+
 # 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
 # veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
 # 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
 # # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
 
-# service fonksiyonlarını service ve ui ayır
 # fetch ve upload da ortak fonksiyonları başka sınıfa al
 # gallery_mode nasıl daha iyi hale getirilir?
 
@@ -24,6 +25,8 @@ class UploadTab:
         self.uploadOps = UploadOps(self, app)
         self.fetchOps  = FetchOps(self, app)
         self.deleteOps = DeleteOps(self.fetchOps, self, app)
+
+        self.update_visible = UpdateVisible(self)
         
         self.create_ui()
 
@@ -84,10 +87,10 @@ class UploadTab:
         # scroll with mouse
         def _on_mousewheel(event):
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            self.fetchOps.update_visible()
+            self.update_visible.update_visible()
 
         self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        self.canvas.bind("<Configure>", lambda e: self.fetchOps.update_visible())
+        self.canvas.bind("<Configure>", lambda e: self.update_visible.update_visible())
         self.preview_frame.bind("<Configure>",lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
 
     # button disabling for prevent conflicts

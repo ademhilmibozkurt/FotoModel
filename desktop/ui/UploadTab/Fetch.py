@@ -4,13 +4,15 @@ from PIL import Image, ImageOps
 from concurrent.futures import ThreadPoolExecutor
 
 from infra.database import SupabaseDB
+from ui.UpdateVisible import UpdateVisible
 
 class Fetch:
     def __init__(self, tab, app):
         self.tab = tab
         self.app = app
 
-        self.supabase = SupabaseDB()
+        self.supabase       = SupabaseDB()
+        self.update_visible = UpdateVisible(self)
 
         self.CARD_WIDTH  = 299
         self.CARD_HEIGHT = 168
@@ -69,7 +71,7 @@ class Fetch:
 
         self.templates_ready = True
         self.visible_range = (-1,-1)
-        self.app.after(100, self.update_visible)
+        self.app.after(100, self.update_visible.update_visible)
 
         self.tab.preview_frame.bind("<ButtonPress-1>", self.start_drag)
         self.tab.preview_frame.bind("<B1-Motion>", self.drag_select)
@@ -162,7 +164,7 @@ class Fetch:
                 if not frame.selected:
                     self.toggle_select(frame)
 
-    #------------------------- !!!upload yazılınca böl !!! --------------------------
+    """#------------------------- !!!upload yazılınca böl !!! --------------------------
     def update_visible(self):
         if not self.templates_ready: # or not self._current_cols:
             return
@@ -255,4 +257,4 @@ class Fetch:
 
         lbl.bind("<Button-1>", lambda e, f=frame: self.toggle_select(f))
 
-        frame.loaded = True
+        frame.loaded = True"""

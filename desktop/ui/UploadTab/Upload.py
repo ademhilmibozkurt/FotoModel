@@ -3,10 +3,14 @@ from tkinter import filedialog
 import customtkinter as ctk
 from PIL import Image, ImageOps
 
+from ui.UpdateVisible import UpdateVisible
+
 class Upload:
     def __init__(self, tab, app):
         self.tab = tab 
         self.app = app
+
+        self.updata_visible = UpdateVisible(self)
 
         self.images   = []
         self.image_paths = []
@@ -86,7 +90,7 @@ class Upload:
 
             self.templates_ready = True
             # self.app.after(50, self.relayout_gallery)
-            self.update_visible()
+            self.updata_visible.update_visible()
         
             print(f"Yüklendi: {path}")
 
@@ -100,7 +104,7 @@ class Upload:
         self.images.clear()
         self.image_paths.clear()
 
-    # ----------------- !!! bu kısmı böl !!! --------------------------    
+    """# ----------------- !!! bu kısmı böl !!! --------------------------    
     def update_visible(self):
         if not self.templates_ready: # or not self._current_cols:
             return
@@ -113,4 +117,4 @@ class Upload:
                 r = i // self.COLS # self._current_cols
                 c = i % self.COLS # self._current_cols
                 frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
-            return
+            return"""

@@ -9,7 +9,6 @@ from PIL import Image, ImageOps
 from threading import Semaphore
 
 from infra.database import SupabaseDB
-
 from services.SelectionOps import SelectionOps
 
 class SelectionTab:
@@ -82,7 +81,6 @@ class SelectionTab:
         # is_completed state toggle
         self.tree.bind("<Button-1>", self.selectionOps.on_tree_single_click)
 
-    # ----------------- bu kısım service kısmı ayır -----------------------
     def load_supabase_data(self):
         try:
             self.app.spinner.run_with_spinner(
@@ -97,90 +95,6 @@ class SelectionTab:
         self.all_data = data
         self.selectionOps.refresh_tree(self.all_data)
         print(f"Seçimler getirildi ({time.strftime('%H:%M:%S')})")
-
-    # ----------------------- bu kısım ui kısmı ayır -----------------------
-    """def refresh_tree(self, data):
-        self.tree.delete(*self.tree.get_children())
-
-        if not data:
-            return
-
-        columns = list(data[0].keys())
-
-        # add is_completed state
-        if "Durum" not in columns:
-            columns.insert(0, "Durum")
-
-        self.tree["columns"] = columns
-        self.tree["show"] = "headings"
-
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=50)
-
-        # for show selected templates in new window
-        self.tree_record_map = {}
-        for row in data:
-            completed = row.get("is_completed", False)
-            status_text = "✔" if completed else "⬜"
-            
-            values = [status_text] + list(row.values())
-
-            item_id = self.tree.insert("", "end", values=values)
-            self.tree_record_map[item_id] = row
-
-    def filter_tree(self, *args):
-        query = self.search_var.get().lower()
-
-        if not query:
-            self.refresh_tree(self.all_data)
-            return
-
-        filtered = [
-            row for row in self.all_data
-            if any(query in str(v).lower() for v in row.values())
-        ]
-
-        self.refresh_tree(filtered)
-
-    # on single click update is_completed state
-    def on_tree_single_click(self, event):
-        region = self.tree.identify("region", event.x, event.y)
-        if region != "cell":
-            return
-
-        column = self.tree.identify_column(event.x)
-        if column != "#1":
-            return
-
-        row_id = self.tree.identify_row(event.y)
-        if not row_id:
-            return
-
-        values = list(self.tree.item(row_id, "values"))
-        current = values[0]
-
-        new_value = "✔" if current == "⬜" else "⬜"
-        values[0] = new_value
-        self.tree.item(row_id, values=values)
-
-        record = self.tree_record_map.get(row_id)
-        if record:
-            self.supabase.update_completed_status(record, new_value == "✔")
-
-    # on double click open new window for show selected images
-    def on_tree_double_click(self, event):
-        selected = self.tree.selection()
-        if not selected:
-            return
-
-        item_id = selected[0]
-        record = self.tree_record_map.get(item_id)
-
-        if not record:
-            return
-
-        self.open_selection_detail(record)"""
         
     # selected templates window
     def open_selection_detail(self, record):
