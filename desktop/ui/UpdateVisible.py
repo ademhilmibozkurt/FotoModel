@@ -15,7 +15,6 @@ class UpdateVisible:
         if not self.fetch.gallery_mode:
             self.fetch.gallery_mode = "upload"
 
-        # -------------- !!!UnboundLocalError: cannot access local variable 'c' where it is not associated with a value!!!!
         # upload mode -> show everything
         if self.fetch.gallery_mode == "upload":
             for i, frame in enumerate(self.fetch.template_cards):
@@ -38,6 +37,7 @@ class UpdateVisible:
                 if not frame.winfo_exists():continue
 
                 r = i // self.fetch.COLS
+                c = i % self.fetch.COLS
                 frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
 
                 if start <= i < end and not frame.loaded:
