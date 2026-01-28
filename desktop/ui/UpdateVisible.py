@@ -8,23 +8,19 @@ class UpdateVisible:
         self.tab  = tab
         self.app  = app
 
-    def update_visible(self):
+    def update_upload(self):
         if not self.fetch.templates_ready:
             return
         
-        if not self.fetch.gallery_mode:
-            self.fetch.gallery_mode = "upload"
+        for i, frame in enumerate(self.fetch.template_cards):
+            if not frame.winfo_exists():continue
 
-        # upload mode -> show everything
-        if self.fetch.gallery_mode == "upload":
-            for i, frame in enumerate(self.fetch.template_cards):
-                if not frame.winfo_exists():continue
+            r = i // self.fetch.COLS
+            c = i % self.fetch.COLS
+            frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
+        return
 
-                r = i // self.fetch.COLS
-                c = i % self.fetch.COLS
-                frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
-            return
-
+    def update_fetch(self):
         # fetch mode -> lazy loading
         start, end = self.get_visible_indices()
         if (start, end) == self.fetch.visible_range:
@@ -32,18 +28,18 @@ class UpdateVisible:
 
         self.tab.visible_range = (start, end)
 
-        if self.fetch.gallery_mode == "fetch":
-            for i, frame in enumerate(self.fetch.template_cards):
-                if not frame.winfo_exists():continue
+        # if self.fetch.gallery_mode == "fetch":
+        for i, frame in enumerate(self.fetch.template_cards):
+            if not frame.winfo_exists():continue
 
-                r = i // self.fetch.COLS
-                c = i % self.fetch.COLS
-                frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
+            r = i // self.fetch.COLS
+            c = i % self.fetch.COLS
+            frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
 
-                if start <= i < end and not frame.loaded:
-                    self.load_image_async(frame)
-                else:
-                    pass
+            if start <= i < end and not frame.loaded:
+                self.load_image_async(frame)
+            else:
+                pass
         
         self.tab.preview_frame.update_idletasks()
         self.tab.canvas.configure(scrollregion=self.tab.canvas.bbox("all"))
@@ -92,7 +88,6 @@ class UpdateVisible:
             return
 
         img = self.fetch.ctk_cache.get(frame.filename)
-        print(frame.filename)
         if not img:
             return
 

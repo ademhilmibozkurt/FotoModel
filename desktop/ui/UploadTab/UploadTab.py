@@ -13,7 +13,6 @@ from ui.UploadTab.Fetch import Fetch
 # 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
 # # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
 
-# fetch ve upload da ortak fonksiyonları başka sınıfa al
 # gallery_mode nasıl daha iyi hale getirilir?
 
 class UploadTab:

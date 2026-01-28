@@ -22,7 +22,7 @@ class Fetch:
         self.templates_ready = False
 
         # for lazy loading
-        self.gallery_mode = "None"
+        # self.gallery_mode = "None"
         self.template_cards = []
 
         self.pil_cache = {}
@@ -35,7 +35,7 @@ class Fetch:
         self.fetchOps.fetch_templates()
 
     def update(self):
-        self.app.after(100, self.update_visible.update_visible)
+        self.app.after(100, self.update_visible.update_fetch)# update_visible)
 
     # download and show fetched list
     def show_templates(self, filenames):
@@ -77,7 +77,7 @@ class Fetch:
 
         self.templates_ready = True
         self.visible_range = (-1,-1)
-        self.app.after(100, self.update_visible.update_visible)
+        self.app.after(100, self.update_visible.update_fetch) # update_visible)
 
         self.tab.preview_frame.bind("<ButtonPress-1>", self.start_drag)
         self.tab.preview_frame.bind("<B1-Motion>", self.drag_select)

@@ -89,8 +89,7 @@ class Upload:
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            # self.app.after(50, self.relayout_gallery)
-            self.update_visible.update_visible()
+            self.update_visible.update_upload()# update_visible()
         
             print(f"Yüklendi: {path}")
 
@@ -103,18 +102,3 @@ class Upload:
             widget.destroy()
         self.images.clear()
         self.image_paths.clear()
-
-    """# ----------------- !!! bu kısmı böl !!! --------------------------    
-    def update_visible(self):
-        if not self.templates_ready: # or not self._current_cols:
-            return
-        
-        # upload mode -> show everything
-        if self.gallery_mode == "upload":
-            for i, frame in enumerate(self.template_cards):
-                if not frame.winfo_exists():continue
-
-                r = i // self.COLS # self._current_cols
-                c = i % self.COLS # self._current_cols
-                frame.grid(row=r, column=c, padx=15, pady=15, sticky="n")
-            return"""

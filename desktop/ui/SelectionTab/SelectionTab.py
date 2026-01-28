@@ -141,7 +141,6 @@ class SelectionTab:
             
             self.placeholder_frames.append(cell)
     
-    # ------------ bu kısım fetch de ki fonksiyonlarla aynı ----------------------
     def load_visible_images(self):
         if not self.scroll.winfo_exists():
             return
