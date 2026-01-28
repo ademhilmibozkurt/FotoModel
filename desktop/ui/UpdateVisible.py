@@ -71,7 +71,7 @@ class UpdateVisible:
             return
             
         def worker():
-            res = self.supabase.download_templates_fromdb(fn)
+            res = self.fetch.supabase.download_templates_fromdb(fn)
             img = Image.open(BytesIO(res))
             img = ImageOps.contain(img, (self.fetch.CARD_WIDTH, self.fetch.CARD_HEIGHT), Image.LANCZOS)
 
@@ -84,7 +84,7 @@ class UpdateVisible:
 
             self.app.after(0, lambda: self.attach_image(frame))
 
-        self.download_executor.submit(worker)
+        self.fetch.download_executor.submit(worker)
 
     # attach image to label
     def attach_image(self, frame):
@@ -92,6 +92,7 @@ class UpdateVisible:
             return
 
         img = self.fetch.ctk_cache.get(frame.filename)
+        print(frame.filename)
         if not img:
             return
 
