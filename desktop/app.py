@@ -8,6 +8,11 @@ from ui.LinkTab.LinkTab import LinkTab
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+# 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
+# veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
+# 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
+# # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
+
 class FotoModelApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -36,7 +41,6 @@ class FotoModelApp(ctk.CTk):
 
     # ---------------- UI ----------------
     def create_ui(self):
-        # self.create_header()
         self.create_tabs()
         self.create_log_tab()
 
@@ -82,6 +86,7 @@ class FotoModelApp(ctk.CTk):
 
         self.tabs.add("Log")
         
+    # -------- !!! db log eklerken burayı efektif kullan ve logları uygulamada göster. !!! ---------
     # ---------------- Log Tab ----------------
     def create_log_tab(self):
         tab = self.tabs.tab("Log")

@@ -30,7 +30,6 @@ class SupabaseDB(object):
             .data
             )
 
-        # tarih formatını ayarla !!
         # telefon formatını formda ayarla !!
         for item in response:
             formatted.append({

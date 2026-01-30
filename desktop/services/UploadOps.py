@@ -19,7 +19,6 @@ class UploadOps:
     def upload_images(self):
         self.upload.upload_images_ui_wspinner()
     
-    # ------------------- bu kısım buranın işi üstü ui al --------------------------    
     # upload to db
     def upload_templates_todb(self):
         self.app.after(0, self.app.spinner.show_spinner)

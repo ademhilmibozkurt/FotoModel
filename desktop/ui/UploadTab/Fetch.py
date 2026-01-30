@@ -20,9 +20,6 @@ class Fetch:
         self.COLS = 4
 
         self.templates_ready = False
-
-        # for lazy loading
-        # self.gallery_mode = "None"
         self.template_cards = []
 
         self.pil_cache = {}
@@ -35,7 +32,7 @@ class Fetch:
         self.fetchOps.fetch_templates()
 
     def update(self):
-        self.app.after(100, self.update_visible.update_fetch)# update_visible)
+        self.app.after(100, self.update_visible.update_fetch)
 
     # download and show fetched list
     def show_templates(self, filenames):

@@ -8,13 +8,6 @@ from services.DeleteOps import DeleteOps
 
 from ui.UploadTab.Fetch import Fetch
 
-# 2. uygulalmanın patlaması halinde nasıl bir yol izlenecek? işlemlerin yarım kalmaması 
-# veya yapılan işlemin kökten iptali ile tersine dönderilmesi gerek.
-# 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
-# # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
-
-# gallery_mode nasıl daha iyi hale getirilir?
-
 class UploadTab:
     def __init__(self, app, tab):
         self.app = app

@@ -27,8 +27,6 @@ class UpdateVisible:
             return
 
         self.tab.visible_range = (start, end)
-
-        # if self.fetch.gallery_mode == "fetch":
         for i, frame in enumerate(self.fetch.template_cards):
             if not frame.winfo_exists():continue
 

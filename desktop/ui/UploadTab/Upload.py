@@ -21,9 +21,6 @@ class Upload:
         self.COLS = 4
 
         self.templates_ready = False
-        # for lazy loading
-        self.gallery_mode = "None"
-        
         self.template_cards = []
         
         self.visible_range = (0, 0)
@@ -43,7 +40,6 @@ class Upload:
 
     # upload template photos to supabase storage
     def upload_images_tab(self):
-        self.gallery_mode = "upload"
         for widget in self.tab.preview_frame.winfo_children():
             widget.destroy()
 
@@ -89,7 +85,7 @@ class Upload:
                 self.template_cards.append(frame)
 
             self.templates_ready = True
-            self.update_visible.update_upload()# update_visible()
+            self.update_visible.update_upload()
         
             print(f"Yüklendi: {path}")
 
