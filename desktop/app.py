@@ -13,6 +13,8 @@ ctk.set_default_color_theme("blue")
 # 6. web tarafına bir güvenlik koy url olan herkes gidemesin veya url de token olanlar gidebilsin
 # # 8. ortak bir log mekanizması ekle. db üzerinde tutulsun üzerine ekle.işlemlerin aldığı süresiyi de logda tut
 
+# https://www.geeksforgeeks.org/python/logging-in-python/
+
 class FotoModelApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -86,7 +88,6 @@ class FotoModelApp(ctk.CTk):
 
         self.tabs.add("Log")
         
-    # -------- !!! db log eklerken burayı efektif kullan ve logları uygulamada göster. !!! ---------
     # ---------------- Log Tab ----------------
     def create_log_tab(self):
         tab = self.tabs.tab("Log")
@@ -96,11 +97,6 @@ class FotoModelApp(ctk.CTk):
             font=("Consolas", 11)
         )
         self.log_area.pack(fill="both", expand=True, padx=10, pady=10)
-
-    def log(self, message):
-        self.log_area.insert("end", f"{message}\n")
-        self.log_area.see("end")
-
 
 if __name__ == "__main__":
     app = FotoModelApp()
