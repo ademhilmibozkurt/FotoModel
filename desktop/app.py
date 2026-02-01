@@ -77,7 +77,6 @@ class FotoModelApp(ctk.CTk):
         self.selection_tab = SelectionTab(self, selection_tab)
 
         # -------- link creating tab ---------
-        # self.create_link_tab()
         link_tab = self.tabs.add("Link Oluştur")
         self.link_tab = LinkTab(self, link_tab)
 
