@@ -18,7 +18,8 @@ class SupabaseDB(object):
         super().__init__()
         self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.phop = PhotoOperations()
-        self.logger = Log.db_log
+
+        self.logger = Log.db_log()
 
     # fetch form selections from db
     def fetch_template_selection(self):
@@ -32,7 +33,7 @@ class SupabaseDB(object):
             .data
             )
         
-        self.logger.info("Template selections fetched from db.")
+        self.logger.debug("Template selections fetched from db.")
 
         # telefon formatını formda ayarla !!
         for item in response:
@@ -55,12 +56,12 @@ class SupabaseDB(object):
             .eq("id", record["id"]) \
             .execute()
         
-        self.logger.info("Selection is_completed state changed.")
+        self.logger.debug("Selection is_completed state changed.")
         
     # get form link for customer use
     def get_link(self, domain="http://127.0.0.1:8000"):
         res = requests.get(f"{domain}/create-link")
-        self.logger.info("New form link created.")
+        self.logger.debug("New form link created.")
         link_id = res.json()['link_id'][0]
         return f"{domain}/form/{link_id}"
 
@@ -89,8 +90,6 @@ class SupabaseDB(object):
                 break
 
             offset += limit
-        
-        self.logger.info(f"Templates list fetched.")
 
         return [
             file for file in all_files
@@ -104,17 +103,15 @@ class SupabaseDB(object):
             .from_("foto_model")
             .download(f"templates/{folder}/{filename}")
         )
-        self.logger.info("Template photos downloaded.")
         if not response:
-            self.logger.error("Template download response return null!")
+            self.logger.exception("Template download response return null!")
             raise ValueError("Boş response döndü!")
 
         try:
             json.loads(response.decode("utf-8"))
-            self.logger.info("Template download response type is JSON.")
             raise ValueError("Image yerine JSON döndü (policy veya path hatası)!")
         except (UnicodeDecodeError, json.JSONDecodeError):
-            self.logger.error("JSON file can't decode!")
+            pass
 
         return response
     
@@ -132,7 +129,7 @@ class SupabaseDB(object):
                     "content-type": "image/jpeg"
                 }
             )
-            self.logger.info("Original photos uploaded to database.")
+            self.logger.debug("Original photos uploaded to database.")
 
         else:
             # thumbnail
@@ -144,7 +141,7 @@ class SupabaseDB(object):
                     "content-type": "image/jpeg"
                 }
             )
-            self.logger.info("Thumbnail photos uploaded to database.")
+            self.logger.debug("Thumbnail photos uploaded to database.")
 
     # ----------- deletion ------------
     def delete_template_fromdb(self, filename):
@@ -153,8 +150,8 @@ class SupabaseDB(object):
                 f"templates/original/{filename}",
                 f"templates/thumbs/{filename}"
             ])
-            self.logger.info(f"{filename} deleted from original and thumbnail folders.")
+            self.logger.debug(f"{filename} deleted from original and thumbnail folders.")
             return del_response
         
         except Exception as e:
-            self.logger.erro(f"{filename} deletion failed! -> {e.message}")
+            self.logger.error(f"{filename} deletion failed! -> {e.message}")

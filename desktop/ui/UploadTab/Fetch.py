@@ -74,7 +74,7 @@ class Fetch:
 
         self.templates_ready = True
         self.visible_range = (-1,-1)
-        self.app.after(100, self.update_visible.update_fetch) # update_visible)
+        self.app.after(100, self.update_visible.update_fetch)
 
         self.tab.preview_frame.bind("<ButtonPress-1>", self.start_drag)
         self.tab.preview_frame.bind("<B1-Motion>", self.drag_select)

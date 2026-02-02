@@ -96,6 +96,10 @@ class FotoModelApp(ctk.CTk):
             font=("Consolas", 11)
         )
         self.log_area.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    def desktop_log(self, message):
+        self.tab.log_area.insert("end", f"{message}\n")
+        self.tab.log_area.see("end")
 
 if __name__ == "__main__":
     app = FotoModelApp()

@@ -1,27 +1,36 @@
+import os
 import logging
 
+root = logging.getLogger()
+for h in root.handlers[:]:
+    root.removeHandler(h)
+
 class Log:
-    def __init__(self, tab = None):
-        self.tab = tab
+    _logger = None
 
-        self.logger = self.create_logger()
+    @classmethod
+    def db_log(cls):
+        if cls._logger:
+            return cls._logger
 
-    def desktop_log(self, message):
-        self.tab.log_area.insert("end", f"{message}\n")
-        self.tab.log_area.see("end")
+        os.makedirs("logs", exist_ok=True)
 
-    def create_logger(self):
-        logger = logging.getLogger("DbLogger")
+        logger = logging.getLogger("AppLogger")
         logger.setLevel(logging.INFO)
-        logger.basicConfig(format='%(asctime)s %(levelname)s: %(message)s')
-        
-        file_handler = logging.FileHandler("logs/app.log")
+
+        logger.handlers.clear()
+        logger.propagate = False
+
+        formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+
+        file_handler = logging.FileHandler("logs/app.log", encoding="utf-8")
+        file_handler.setFormatter(formatter)
+
         logger.addHandler(file_handler)
 
+        cls._logger = logger
         return logger
 
-    def db_log(self):
-        return self.logger
     
-    def push_log_todb(self):
+    def push_log_todb():
         pass
