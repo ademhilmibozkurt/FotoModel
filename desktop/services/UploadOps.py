@@ -6,10 +6,11 @@ from infra.database import SupabaseDB
 from ui.UploadTab.Upload import Upload
 
 class UploadOps:
-    def __init__(self, tab, app):
+    def __init__(self, tab, app, Log):
         self.tab = tab
         self.app = app
 
+        self.logger = Log.db_log()
         self.upload = Upload(tab, app)
         
         # limit the number of parallel operations
@@ -27,6 +28,7 @@ class UploadOps:
             daemon=True
         ).start()
         self.app.desktop_log("Dosyalar veritabanına yüklendi.")
+        self.logger.info("Files uploaded to database.")
 
         self.tab.switch_button(self.tab.btnSubmit)
         self.tab.switch_button(self.tab.btnGetTemplates, "normal")
@@ -42,6 +44,7 @@ class UploadOps:
             )
         
         self.app.desktop_log("Dosyalar yüklenirken hata oluştu: ", errors)
+        self.logger.error("When files uploading to database errors occure: ", errors)
         self.app.after(0, self.app.spinner.hide_spinner)
 
     def upload_templates_parallel(self, paths: list):

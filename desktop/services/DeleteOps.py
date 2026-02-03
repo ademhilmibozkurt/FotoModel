@@ -4,11 +4,12 @@ from tkinter import messagebox
 from infra.database import SupabaseDB
 
 class DeleteOps:    
-    def __init__(self, fetch, tab, app):
+    def __init__(self, fetch, tab, app, Log):
         self.fetch = fetch
         self.tab   = tab
         self.app   = app
 
+        self.logger = Log.db_log()
         self.supabase = SupabaseDB()
 
     # delete selected templates from supabase storage
@@ -39,9 +40,11 @@ class DeleteOps:
 
             self.app.after(10, self.fetch.fetch_templates)
             self.app.desktop_log("Seçilen dosyalar silindi!")
+            self.logger.info("Selected files deleted!")
 
         except Exception as e:
             self.app.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
             self.app.desktop_log("Seçilen dosyalar silinirken hata oluştu: ",str(e))
+            self.logger.error("When files deleting error occure!")
         finally:
             self.app.after(50, self.app.spinner.hide_spinner)
