@@ -26,6 +26,7 @@ class UploadOps:
             target=self._upload_worker,
             daemon=True
         ).start()
+        self.app.desktop_log("Dosyalar veritabanına yüklendi.")
 
         self.tab.switch_button(self.tab.btnSubmit)
         self.tab.switch_button(self.tab.btnGetTemplates, "normal")
@@ -40,6 +41,7 @@ class UploadOps:
                 "\n".join(errors[:5])
             )
         
+        self.app.desktop_log("Dosyalar yüklenirken hata oluştu: ", errors)
         self.app.after(0, self.app.spinner.hide_spinner)
 
     def upload_templates_parallel(self, paths: list):

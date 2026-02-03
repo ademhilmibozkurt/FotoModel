@@ -38,10 +38,10 @@ class DeleteOps:
                 self.supabase.delete_template_fromdb(filename)
 
             self.app.after(10, self.fetch.fetch_templates)
-            print("DELETE RESPONSE: Deleted!")
+            self.app.desktop_log("Seçilen dosyalar silindi!")
 
         except Exception as e:
             self.app.after(0, lambda: messagebox.showerror("HATA: ", str(e)))
-
+            self.app.desktop_log("Seçilen dosyalar silinirken hata oluştu: ",str(e))
         finally:
             self.app.after(50, self.app.spinner.hide_spinner)

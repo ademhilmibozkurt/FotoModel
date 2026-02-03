@@ -17,7 +17,7 @@ class UploadTab:
 
         self.uploadOps = UploadOps(self, app)
         self.deleteOps = DeleteOps(self.fetch, self, app)
-        
+
         self.create_ui()
 
     def create_ui(self):
