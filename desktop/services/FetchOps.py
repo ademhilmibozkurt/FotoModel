@@ -4,11 +4,12 @@ from tkinter import messagebox
 from infra.database import SupabaseDB
 
 class FetchOps:
-    def __init__(self, fetch, upTab, app):
+    def __init__(self, fetch, upTab, app, Log):
         self.upTab = upTab
         self.fetch = fetch
         self.app   = app
 
+        self.logger = Log.db_log()
         self.supabase = SupabaseDB()
 
     # ---- template fetching ------- fetch photo list from db
@@ -25,6 +26,8 @@ class FetchOps:
             args=(folder,),
             daemon=True
         ).start()
+        self.app.desktop_log("Şablonlar getirildi.")
+        self.logger.info("Templates fetched.")
 
     def _fetch_templates_worker(self, folder):
         self.app.after(0, self.app.spinner.show_spinner)
@@ -35,6 +38,8 @@ class FetchOps:
             self.app.after(0, lambda: self.fetch.show_templates(filenames))
         except Exception as e:
             self.app.after(0, lambda:messagebox.showerror("HATA: ", str(e)))
+            self.app.desktop_log("Şablonlar getirilirken hata oluştu: ", str(e))
+            self.logger.error("When templates fetching error occured!")
 
         finally:
             self.app.after(0, self.app.spinner.hide_spinner)
