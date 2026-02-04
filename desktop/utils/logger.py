@@ -1,10 +1,6 @@
 import os
 import logging
 
-root = logging.getLogger()
-for h in root.handlers[:]:
-    root.removeHandler(h)
-
 class Log:
     _logger = None
 

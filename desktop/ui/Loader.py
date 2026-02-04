@@ -51,7 +51,7 @@ class Loader:
             except Exception as e:
                 err = str(e)
                 self.app.after(0, lambda: messagebox.showerror("HATA", err))
-                self.app.after(0, lambda: self.log(f"HATA: {err}"))
+                self.app.after(0, lambda: self.app.desktop_log(f"HATA: {err}"))
             finally:
                 self.app.after(0, self.hide_spinner)
 

@@ -2,9 +2,10 @@ import threading
 from tkinter import messagebox
 
 from infra.database import SupabaseDB
+from utils.logger import Log
 
 class DeleteOps:    
-    def __init__(self, fetch, tab, app, Log):
+    def __init__(self, fetch, tab, app):
         self.fetch = fetch
         self.tab   = tab
         self.app   = app

@@ -87,10 +87,10 @@ class Upload:
             self.templates_ready = True
             self.update_visible.update_upload()
         
-            print(f"Yüklendi: {path}")
+            self.app.desktop_log(f"Yüklendi: {path}")
 
         except Exception as e:
-            print(f"HATA: {e}")
+            self.app.desktop_log(f"HATA: {e}")
 
     def _clear_preview(self):
         # clean the screen for futher uploads

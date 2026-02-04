@@ -2,9 +2,10 @@ import threading
 from tkinter import messagebox
 
 from infra.database import SupabaseDB
+from utils.logger import Log
 
 class FetchOps:
-    def __init__(self, fetch, upTab, app, Log):
+    def __init__(self, fetch, upTab, app):
         self.upTab = upTab
         self.fetch = fetch
         self.app   = app
@@ -38,7 +39,7 @@ class FetchOps:
             self.app.after(0, lambda: self.fetch.show_templates(filenames))
         except Exception as e:
             self.app.after(0, lambda:messagebox.showerror("HATA: ", str(e)))
-            self.app.desktop_log("Şablonlar getirilirken hata oluştu: ", str(e))
+            self.app.desktop_log(f"Şablonlar getirilirken hata oluştu: {str(e)}")
             self.logger.error("When templates fetching error occured!")
 
         finally:

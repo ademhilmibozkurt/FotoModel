@@ -7,17 +7,16 @@ from services.UploadOps import UploadOps
 from services.DeleteOps import DeleteOps
 
 from ui.UploadTab.Fetch import Fetch
-from utils.logger import Log
 
 class UploadTab:
     def __init__(self, app, tab):
         self.app = app
         self.tab = tab
 
-        self.fetch = Fetch(self, self.app, Log)
+        self.fetch = Fetch(self, self.app)
 
-        self.uploadOps = UploadOps(self, app, Log)
-        self.deleteOps = DeleteOps(self.fetch, self, app, Log)
+        self.uploadOps = UploadOps(self, app)
+        self.deleteOps = DeleteOps(self.fetch, self, app)
 
         self.create_ui()
 

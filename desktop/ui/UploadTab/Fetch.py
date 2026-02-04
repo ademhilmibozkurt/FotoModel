@@ -6,13 +6,13 @@ from ui.UpdateVisible import UpdateVisible
 from services.FetchOps import FetchOps
 
 class Fetch:
-    def __init__(self, tab, app, Log):
+    def __init__(self, tab, app):
         self.tab = tab
         self.app = app
 
         self.supabase = SupabaseDB()
         self.update_visible = UpdateVisible(self, self.tab, self.app)
-        self.fetchOps = FetchOps(self, self.tab, self.app, Log)
+        self.fetchOps = FetchOps(self, self.tab, self.app)
 
         self.CARD_WIDTH  = 299
         self.CARD_HEIGHT = 168

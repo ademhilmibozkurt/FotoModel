@@ -1,5 +1,5 @@
-import datetime
 import customtkinter as ctk
+from datetime import datetime
 
 from ui.Loader import Loader
 from ui.SelectionTab.SelectionTab import SelectionTab
@@ -99,8 +99,8 @@ class FotoModelApp(ctk.CTk):
         self.log_area.pack(fill="both", expand=True, padx=10, pady=10)
     
     def desktop_log(self, message):
-        self.tab.log_area.insert("end", f"{datetime.utcnow()}: {message}\n")
-        self.tab.log_area.see("end")
+        self.log_area.insert("end", f"{datetime.utcnow()}: {message}\n")
+        self.log_area.see("end")
 
 if __name__ == "__main__":
     app = FotoModelApp()

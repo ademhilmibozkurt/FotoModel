@@ -4,9 +4,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from infra.database import SupabaseDB
 from ui.UploadTab.Upload import Upload
+from utils.logger import Log
 
 class UploadOps:
-    def __init__(self, tab, app, Log):
+    def __init__(self, tab, app):
         self.tab = tab
         self.app = app
 
@@ -43,8 +44,8 @@ class UploadOps:
                 "\n".join(errors[:5])
             )
         
-        self.app.desktop_log("Dosyalar yüklenirken hata oluştu: ", errors)
-        self.logger.error("When files uploading to database errors occure: ", errors)
+        self.app.desktop_log(f"Dosyalar yüklenirken hata oluştu: {errors}")
+        self.logger.error(f"When files uploading to database errors occure: {errors}")
         self.app.after(0, self.app.spinner.hide_spinner)
 
     def upload_templates_parallel(self, paths: list):
